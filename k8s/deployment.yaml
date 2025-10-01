@@ -1,0 +1,143 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eid-server
+  labels:
+    app: eid-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: eid-server
+  template:
+    metadata:
+      labels:
+        app: eid-server
+    spec:
+      containers:
+      - name: server
+        image: your-registry/eid-server:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: db-host
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: db-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: jwt-secret
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: stripe-secret-key
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: gemini-api-key
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eid-server-service
+spec:
+  selector:
+    app: eid-server
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eid-client
+  labels:
+    app: eid-client
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eid-client
+  template:
+    metadata:
+      labels:
+        app: eid-client
+    spec:
+      containers:
+      - name: client
+        image: your-registry/eid-client:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: REACT_APP_SERVER_URL
+          value: "https://api.eid2025.com"
+        - name: REACT_APP_STRIPE_PUBLISHABLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eid-secrets
+              key: stripe-publishable-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eid-client-service
+spec:
+  selector:
+    app: eid-client
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP

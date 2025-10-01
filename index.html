@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eid al-Fitr 2025 - Community Celebration</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>Eid al-Fitr 2025</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#home" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#venue" class="nav-link">Venue</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#schedule" class="nav-link">Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#prayer-guide" class="nav-link">Prayer Guide</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#zakat" class="nav-link">Zakat al-Fitr</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#forum" class="nav-link">Community</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Real-time Updates Banner -->
+    <div class="updates-banner" id="updatesBanner">
+        <div class="updates-content">
+            <i class="fas fa-bullhorn"></i>
+            <span id="updateText">Welcome to Eid al-Fitr 2025! Prayer begins at 8:00 AM</span>
+        </div>
+    </div>
+
+    <!-- Homepage Section -->
+    <section id="home" class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">Eid Mubarak!</h1>
+            <p class="hero-subtitle">Join us for a blessed celebration of Eid al-Fitr 2025</p>
+            <p class="hero-description">
+                A day of joy, gratitude, and community. Whether you're a Muslim attendee or a curious visitor, 
+                we welcome you to experience the beauty of this sacred celebration.
+            </p>
+            <div class="hero-buttons">
+                <a href="#prayer-guide" class="btn btn-primary">Prayer Guide</a>
+                <a href="#venue" class="btn btn-secondary">Explore Venue</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <div class="hero-placeholder">
+                <i class="fas fa-mosque"></i>
+                <p>Eid Celebration</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Venue Insights Section -->
+    <section id="venue" class="venue-section">
+        <div class="container">
+            <h2 class="section-title">Venue Insights</h2>
+            <div class="venue-content">
+                <div class="venue-info">
+                    <h3>Community Center</h3>
+                    <p>Our spacious community center provides the perfect setting for this blessed celebration. 
+                    The venue includes separate prayer areas for men and women, children's activity zones, 
+                    and comfortable seating areas for families.</p>
+                    
+                    <div class="venue-features">
+                        <div class="feature">
+                            <i class="fas fa-mosque"></i>
+                            <span>Prayer Hall</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-child"></i>
+                            <span>Children's Area</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-utensils"></i>
+                            <span>Food Court</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-parking"></i>
+                            <span>Free Parking</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="venue-map">
+                    <div class="map-placeholder">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <p>Interactive Venue Map</p>
+                        <small>Click to explore different areas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Event Schedule Section -->
+    <section id="schedule" class="schedule-section">
+        <div class="container">
+            <h2 class="section-title">Event Schedule</h2>
+            <div class="schedule-filters">
+                <button class="filter-btn active" data-filter="all">All Activities</button>
+                <button class="filter-btn" data-filter="adults">Adults</button>
+                <button class="filter-btn" data-filter="children">Children</button>
+                <button class="filter-btn" data-filter="food">Food & Dining</button>
+            </div>
+            
+            <div class="schedule-grid">
+                <div class="schedule-item" data-category="adults">
+                    <div class="schedule-time">8:00 AM</div>
+                    <div class="schedule-content">
+                        <h3>Eid Prayer</h3>
+                        <p>Community Eid prayer led by Imam <span class="glossary-term" data-term="imam">Imam</span></p>
+                        <span class="schedule-location">Main Prayer Hall</span>
+                    </div>
+                </div>
+                
+                <div class="schedule-item" data-category="all">
+                    <div class="schedule-time">9:00 AM</div>
+                    <div class="schedule-content">
+                        <h3>Community Breakfast</h3>
+                        <p>Traditional <span class="glossary-term" data-term="iftar">Eid</span> breakfast with family and friends</p>
+                        <span class="schedule-location">Food Court</span>
+                    </div>
+                </div>
+                
+                <div class="schedule-item" data-category="children">
+                    <div class="schedule-time">10:00 AM</div>
+                    <div class="schedule-content">
+                        <h3>Children's Activities</h3>
+                        <p>Games, crafts, and educational activities for kids</p>
+                        <span class="schedule-location">Children's Area</span>
+                    </div>
+                </div>
+                
+                <div class="schedule-item" data-category="adults">
+                    <div class="schedule-time">11:00 AM</div>
+                    <div class="schedule-content">
+                        <h3>Islamic Lecture</h3>
+                        <p>Understanding the significance of <span class="glossary-term" data-term="eid">Eid al-Fitr</span></p>
+                        <span class="schedule-location">Conference Room</span>
+                    </div>
+                </div>
+                
+                <div class="schedule-item" data-category="food">
+                    <div class="schedule-time">12:00 PM</div>
+                    <div class="schedule-content">
+                        <h3>Lunch Service</h3>
+                        <p>Traditional and international cuisine available</p>
+                        <span class="schedule-location">Food Court</span>
+                    </div>
+                </div>
+                
+                <div class="schedule-item" data-category="all">
+                    <div class="schedule-time">2:00 PM</div>
+                    <div class="schedule-content">
+                        <h3>Community Social</h3>
+                        <p>Meet and greet with community members</p>
+                        <span class="schedule-location">Main Hall</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Eid Prayer Guide Section -->
+    <section id="prayer-guide" class="prayer-guide-section">
+        <div class="container">
+            <h2 class="section-title">Eid Prayer Guide</h2>
+            <div class="prayer-guide-content">
+                <div class="prayer-intro">
+                    <h3>Understanding the Eid Prayer</h3>
+                    <p>The <span class="glossary-term" data-term="eid-prayer">Eid prayer</span> is a special congregational prayer performed on the morning of Eid al-Fitr. 
+                    It consists of two <span class="glossary-term" data-term="rakah">rak'ahs</span> with additional <span class="glossary-term" data-term="takbir">takbirs</span>.</p>
+                </div>
+                
+                <div class="prayer-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Intention (Niyyah)</h4>
+                            <p>Make the intention to perform the Eid prayer for the sake of Allah</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>First Rak'ah</h4>
+                            <p>Begin with 7 additional takbirs, then recite Al-Fatiha and another surah</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Second Rak'ah</h4>
+                            <p>Stand up and perform 5 additional takbirs, then complete the prayer</p>
+                        </div>
+                    </div>
+                    
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Khutbah</h4>
+                            <p>Listen to the <span class="glossary-term" data-term="khutbah">khutbah</span> (sermon) delivered by the Imam</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="prayer-notes">
+                    <h4>Important Notes:</h4>
+                    <ul>
+                        <li>Eid prayer is performed in congregation</li>
+                        <li>It's recommended to eat something sweet before the prayer</li>
+                        <li>Wear your best clothes for the occasion</li>
+                        <li>Give <span class="glossary-term" data-term="zakat-al-fitr">Zakat al-Fitr</span> before the prayer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Zakat al-Fitr Section -->
+    <section id="zakat" class="zakat-section">
+        <div class="container">
+            <h2 class="section-title">Zakat al-Fitr</h2>
+            <div class="zakat-content">
+                <div class="zakat-info">
+                    <h3>What is Zakat al-Fitr?</h3>
+                    <p><span class="glossary-term" data-term="zakat-al-fitr">Zakat al-Fitr</span> is a charitable donation given before the Eid prayer. 
+                    It purifies those who fast from any indecent act or speech and helps the poor and needy.</p>
+                    
+                    <div class="zakat-details">
+                        <div class="detail">
+                            <h4>Amount</h4>
+                            <p>$10 per person (recommended amount)</p>
+                        </div>
+                        <div class="detail">
+                            <h4>Timing</h4>
+                            <p>Must be given before the Eid prayer</p>
+                        </div>
+                        <div class="detail">
+                            <h4>Recipients</h4>
+                            <p>Poor and needy in the community</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="zakat-payment">
+                    <div class="payment-form">
+                        <h3>Make Your Payment</h3>
+                        <form id="zakatForm">
+                            <div class="form-group">
+                                <label for="donorName">Your Name</label>
+                                <input type="text" id="donorName" name="donorName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="familySize">Family Size</label>
+                                <input type="number" id="familySize" name="familySize" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="amount">Amount per Person</label>
+                                <input type="number" id="amount" name="amount" min="5" value="10" required>
+                            </div>
+                            <div class="total-amount">
+                                <strong>Total: $<span id="totalAmount">10</span></strong>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Pay Zakat al-Fitr</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Forum Section -->
+    <section id="forum" class="forum-section">
+        <div class="container">
+            <h2 class="section-title">Community Forum</h2>
+            <div class="forum-content">
+                <div class="forum-ask">
+                    <h3>Ask a Question</h3>
+                    <form id="forumForm">
+                        <div class="form-group">
+                            <label for="questionTitle">Question Title</label>
+                            <input type="text" id="questionTitle" name="questionTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="questionContent">Your Question</label>
+                            <textarea id="questionContent" name="questionContent" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Question</button>
+                    </form>
+                </div>
+                
+                <div class="forum-questions">
+                    <h3>Recent Questions</h3>
+                    <div class="questions-list">
+                        <div class="question-item">
+                            <h4>What time does the Eid prayer start?</h4>
+                            <p>The Eid prayer begins at 8:00 AM. Please arrive 15 minutes early to find your spot.</p>
+                            <span class="question-meta">Posted 2 hours ago</span>
+                        </div>
+                        <div class="question-item">
+                            <h4>Is there parking available?</h4>
+                            <p>Yes, we have free parking available in the community center parking lot.</p>
+                            <span class="question-meta">Posted 4 hours ago</span>
+                        </div>
+                        <div class="question-item">
+                            <h4>What should I wear for Eid prayer?</h4>
+                            <p>Wear your best and cleanest clothes. Traditional Islamic attire is encouraged but not required.</p>
+                            <span class="question-meta">Posted 6 hours ago</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Eid al-Fitr 2025</h3>
+                    <p>Celebrating the blessed day of Eid with our community</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#prayer-guide">Prayer Guide</a></li>
+                        <li><a href="#zakat">Zakat al-Fitr</a></li>
+                        <li><a href="#schedule">Event Schedule</a></li>
+                        <li><a href="#forum">Community Forum</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Community Center<br>
+                    Phone: (555) 123-4567<br>
+                    Email: info@eid2025.com</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Eid al-Fitr Community Celebration. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Glossary Tooltip -->
+    <div class="glossary-tooltip" id="glossaryTooltip">
+        <div class="tooltip-content">
+            <h4 id="tooltipTitle"></h4>
+            <p id="tooltipDefinition"></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
