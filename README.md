@@ -259,9 +259,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For support and questions:
 - Email: info@eid2025.com
-- Phone: (555) 123-4567
-- Community Forum: Use the built-in forum feature
 
----
-
-**Eid Mubarak!** 🌙✨
