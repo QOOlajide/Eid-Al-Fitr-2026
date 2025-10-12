@@ -255,8 +255,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Open source community for the amazing tools and libraries
 - Community members for feedback and suggestions
 
-## 📞 Support
 
-For support and questions:
-- Email: info@eid2025.com
 
