@@ -1,0 +1,15 @@
+{
+  "allowed_domains": [
+    "abukhadeejah.com",
+    "abuiyaad.com",
+    "troid.org",
+    "mpubs.org",
+    "bakkah.net"
+  ],
+  "seed_urls": [
+    "https://www.troid.org/introduction-to-islam/",
+    "https://abukhadeejah.com/the-day-of-eid-and-the-prayer-obligations-sunan-celebration/",
+    "https://www.troid.org/a-clarification-of-some-common-doubts-and-misconceptions-affiliated-with-the-month-of-ramadan/"
+  ]
+}
+

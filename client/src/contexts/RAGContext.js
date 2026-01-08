@@ -19,7 +19,7 @@ export const RAGProvider = ({ children }) => {
     setLoading(true);
     try {
       const response = await axios.post('/api/rag/search', { query });
-      const result = response.data;
+      const result = response.data?.data;
       
       // Add to search history
       setSearchHistory(prev => [
@@ -39,10 +39,33 @@ export const RAGProvider = ({ children }) => {
     }
   };
 
+  const askFromUrls = async (query, urls) => {
+    setLoading(true);
+    try {
+      const response = await axios.post('/api/rag/ask', { query, urls });
+      const result = response.data?.data;
+
+      setSearchHistory(prev => [
+        { query, result, timestamp: new Date() },
+        ...prev.slice(0, 9)
+      ]);
+
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('RAG ask-from-urls error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Ask failed'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRelatedQuestions = async (topic) => {
     try {
       const response = await axios.post('/api/rag/related', { topic });
-      return { success: true, data: response.data };
+      return { success: true, data: response.data?.data || [] };
     } catch (error) {
       console.error('Related questions error:', error);
       return { 
@@ -60,6 +83,7 @@ export const RAGProvider = ({ children }) => {
     loading,
     searchHistory,
     searchIslamicKnowledge,
+    askFromUrls,
     getRelatedQuestions,
     clearHistory
   };

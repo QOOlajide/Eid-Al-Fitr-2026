@@ -5,15 +5,24 @@ import './IslamicQA.css';
 
 const IslamicQA = () => {
   const [query, setQuery] = useState('');
+  const [sourceUrls, setSourceUrls] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [relatedQuestions, setRelatedQuestions] = useState([]);
-  const { loading, searchHistory, searchIslamicKnowledge, getRelatedQuestions, clearHistory } = useRAG();
+  const { loading, searchHistory, searchIslamicKnowledge, askFromUrls, getRelatedQuestions, clearHistory } = useRAG();
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
 
-    const result = await searchIslamicKnowledge(query);
+    const urls = sourceUrls
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const result = urls.length > 0
+      ? await askFromUrls(query, urls)
+      : await searchIslamicKnowledge(query);
+
     if (result.success) {
       setSearchResults(result.data);
       
@@ -68,6 +77,21 @@ const IslamicQA = () => {
                 >
                   {loading ? 'Searching...' : 'Search'}
                 </button>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
+                  Optional: paste source URLs (one per line)
+                </label>
+                <textarea
+                  value={sourceUrls}
+                  onChange={(e) => setSourceUrls(e.target.value)}
+                  placeholder="https://www.troid.org/introduction-to-islam/&#10;https://abukhadeejah.com/..."
+                  rows={4}
+                  className="search-input"
+                  style={{ width: '100%', resize: 'vertical', padding: 10 }}
+                  disabled={loading}
+                />
               </div>
             </form>
 

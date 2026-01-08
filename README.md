@@ -12,16 +12,15 @@ A comprehensive full-stack web application for the Eid al-Fitr 2025 community ce
 - **Islamic Q&A**: AI-powered knowledge system with RAG pipeline
 
 ### RAG Pipeline
-- **Trusted Sources**: Searches through verified Islamic websites:
+- **Trusted Sources**: Crawls and indexes verified Islamic websites into a vector database (Qdrant), then retrieves relevant chunks at query time:
   - abukhadeejah.com
+  - abuiyaad.com
+  - mpubs.org
   - bakkah.net
   - troid.org
-  - abuiyaad.com
-  - abuhakeem.com
-  - mpubs.org
-  - mtws.posthaven.com
-- **AI-Powered Answers**: Uses OpenAI GPT for generating comprehensive responses
-- **Source Attribution**: Provides citations and confidence scores
+- **Vector Retrieval**: Uses embeddings + Qdrant similarity search (top‑k chunks) as the retrieval layer
+- **AI-Powered Answers**: Uses Gemini for generating responses grounded in retrieved chunks
+- **Source Attribution**: Each retrieved chunk includes `url`, `domain`, and `title` for citations; the UI also displays sources + confidence
 
 ### Technical Features
 - **Responsive Design**: Mobile-first approach with modern UI/UX
@@ -132,6 +131,46 @@ eid-al-fitr-2025/
    ```bash
    docker-compose up --build
    ```
+
+## 🔎 Vector RAG (Qdrant) Setup
+
+### 1) Start Qdrant (via Docker Compose)
+
+- Qdrant is included in `docker-compose.yml` as the `qdrant` service and listens on `http://localhost:6333`.
+
+### 2) Configure the server
+
+Add these to `server/.env` (see `server/env.example`):
+
+- `QDRANT_URL=http://localhost:6333`
+- `RAG_VECTOR_COLLECTION=islamic_chunks`
+- `RAG_RETRIEVER=vector`
+- `RAG_TOP_K=6`
+
+### 3) Ingest (crawl + chunk + embed + upsert)
+
+Set a few seed URLs on the allowed domains:
+
+- `RAG_SEED_URLS=https://troid.org/some-page,https://bakkah.net/some-page`
+
+Then run:
+
+```bash
+cd server
+npm run rag:ingest
+```
+
+Notes:
+- The ingest script only follows links on these domains: `abukhadeejah.com`, `abuiyaad.com`, `troid.org`, `mpubs.org`, `bakkah.net`.
+- Tune `RAG_MAX_PAGES`, `RAG_CRAWL_DELAY_MS`, and `RAG_MIN_CHUNK_CHARS` in your env as needed.
+
+## 📏 RAG Metrics (defensible)
+
+Once you have an indexed corpus, you can report:
+- **Corpus size**: number of pages fetched, number of chunks indexed (Qdrant points), and domain coverage
+- **Retrieval quality (offline eval)**: Recall@k / Hit@k on a small gold set of questions with expected domains/URLs
+- **Grounding**: citation coverage (answers that include at least 1 retrieved source URL), and “no sources” rate
+- **Latency**: p50/p95 retrieval + end-to-end response time
 
 ## 🔧 Configuration
 

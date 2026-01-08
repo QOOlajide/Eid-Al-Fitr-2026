@@ -1,14 +1,48 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const ragService = require('../services/ragService');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Ask using user-provided URLs (no manual ingestion required)
+router.post('/ask', [
+  body('query').trim().isLength({ min: 3, max: 500 }).withMessage('Query must be between 3 and 500 characters'),
+  body('urls').isArray({ min: 1, max: 10 }).withMessage('urls must be an array of 1 to 10 URLs'),
+  body('urls.*').isString().trim().isLength({ min: 8, max: 2048 }).withMessage('Invalid URL'),
+  optionalAuth
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+
+    const { query, urls } = req.body;
+    const userId = req.user?.id || null;
+
+    const result = await ragService.answerFromUrls(query, urls, userId);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('RAG ask error:', error);
+    res.status(500).json({
+      message: 'Failed to answer from provided URLs',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 // Search Islamic knowledge
 router.post('/search', [
   body('query').trim().isLength({ min: 3, max: 500 }).withMessage('Query must be between 3 and 500 characters'),
-  authenticateToken
+  optionalAuth
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

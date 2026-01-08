@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,7 +7,8 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
-require('dotenv').config();
+// Always load env relative to /server, regardless of where node is launched from.
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -20,6 +22,7 @@ const { sequelize } = require('./config/database');
 
 // Import socket handlers
 const socketHandlers = require('./socket/socketHandlers');
+const { startIngestionScheduler } = require('./services/ingestionScheduler');
 
 const app = express();
 const server = createServer(app);
@@ -92,7 +95,8 @@ app.use((err, req, res, next) => {
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+// Express 5 (path-to-regexp v6) does not accept "*" as a path pattern here.
+app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
@@ -101,20 +105,34 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-    
-    // Sync database models
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('Database models synchronized.');
+    const requireDb = (process.env.REQUIRE_DB || '').toLowerCase() === 'true'
+      ? true
+      : (process.env.NODE_ENV === 'production');
+
+    // Test database connection (optional in dev for easier local testing)
+    try {
+      await sequelize.authenticate();
+      console.log('Database connection established successfully.');
+
+      // Sync database models
+      if (process.env.NODE_ENV === 'development') {
+        await sequelize.sync({ alter: true });
+        console.log('Database models synchronized.');
+      }
+    } catch (dbError) {
+      if (requireDb) {
+        throw dbError;
+      }
+      console.warn('Database connection unavailable; continuing without DB (set REQUIRE_DB=true to enforce).');
     }
     
     // Start server
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+      // Background RAG indexing (crawl -> chunk -> embed -> Qdrant) on startup + schedule
+      startIngestionScheduler(console);
     });
   } catch (error) {
     console.error('Unable to start server:', error);

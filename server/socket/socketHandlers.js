@@ -1,6 +1,6 @@
 const { Update } = require('../models');
 
-module.exports = (io, socket) => {
+const socketHandlers = (io, socket) => {
   console.log(`User connected: ${socket.id}`);
 
   // Join user to general room
@@ -122,8 +122,6 @@ const broadcastPrayerReminder = (io, prayerData) => {
   });
 };
 
-module.exports = {
-  socketHandlers,
-  broadcastUpdate,
-  broadcastPrayerReminder
-};
+module.exports = socketHandlers;
+module.exports.broadcastUpdate = broadcastUpdate;
+module.exports.broadcastPrayerReminder = broadcastPrayerReminder;
