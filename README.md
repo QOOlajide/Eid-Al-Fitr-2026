@@ -1,6 +1,6 @@
-# Eid al-Fitr 2025 Community Website
+# Eid al-Fitr 2026 Community Website
 
-A comprehensive full-stack web application for the Eid al-Fitr 2025 community celebration, featuring a RAG (Retrieval-Augmented Generation) pipeline for Islamic knowledge Q&A.
+A comprehensive full-stack web application for the Eid al-Fitr 2026 community celebration, featuring a RAG (Retrieval-Augmented Generation) pipeline for Islamic knowledge Q&A.
 
 ## 🚀 Features
 
