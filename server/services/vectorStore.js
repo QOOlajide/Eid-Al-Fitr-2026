@@ -9,7 +9,8 @@ function getQdrantClient() {
   if (!url) return null;
   if (client) return client;
   const checkCompatibility = (process.env.QDRANT_CHECK_COMPATIBILITY || 'true').toLowerCase() === 'true';
-  client = new QdrantClient({ url, checkCompatibility });
+  const apiKey = process.env.QDRANT_API_KEY;
+  client = new QdrantClient({ url, checkCompatibility, ...(apiKey && { apiKey }) });
   return client;
 }
 
