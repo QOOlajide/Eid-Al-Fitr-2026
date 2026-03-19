@@ -67,7 +67,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public   # Disabled — conflicts with client/public/ needed by CRA
 
 # Storybook build outputs
 .out
@@ -243,7 +243,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public   # Disabled — conflicts with client/public/ needed by CRA
 
 # Storybook build outputs
 .out

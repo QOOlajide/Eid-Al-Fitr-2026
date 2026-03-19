@@ -1,0 +1,2 @@
+This is a placeholder favicon to prevent CRA from proxying /favicon.ico to the API server during development.
+
