@@ -1,5 +1,4 @@
 import React from 'react';
-import { BookOpen, Clock, Users, Heart } from 'lucide-react';
 import './PrayerGuide.css';
 
 const PrayerGuide = () => {

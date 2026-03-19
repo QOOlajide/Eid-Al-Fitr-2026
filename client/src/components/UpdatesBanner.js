@@ -5,7 +5,7 @@ import './UpdatesBanner.css';
 
 const UpdatesBanner = () => {
   const [currentUpdate, setCurrentUpdate] = useState(0);
-  const { socket, on } = useSocket();
+  const { on } = useSocket();
 
   const defaultUpdates = [
     "Welcome to Eid al-Fitr 2025! Prayer begins at 8:00 AM",
