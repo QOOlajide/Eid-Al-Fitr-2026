@@ -36,7 +36,7 @@ const Navbar = () => {
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="nav-logo" onClick={closeMenu}>
-          <h2>Eid al-Fitr 2025</h2>
+          <h2>Eid al-Fitr {new Date().getFullYear()}</h2>
         </Link>
 
         <ul className={`nav-menu ${isOpen ? 'active' : ''}`}>

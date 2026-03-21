@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <g fill="none" stroke="rgba(255,215,0,0.3)" stroke-width="0.5">
+    <!-- 8-pointed star pattern (Islamic geometric tessellation) -->
+    <polygon points="40,5 45,20 60,10 50,25 65,30 50,35 60,50 45,40 40,55 35,40 20,50 30,35 15,30 30,25 20,10 35,20"/>
+    <!-- Corner stars (for tiling) -->
+    <polygon points="0,0 5,10 15,5 10,15 20,20 10,20 5,15 0,20" transform="translate(0,0)"/>
+    <polygon points="0,0 5,10 15,5 10,15 20,20 10,20 5,15 0,20" transform="translate(60,0)"/>
+    <polygon points="0,0 5,10 15,5 10,15 20,20 10,20 5,15 0,20" transform="translate(0,60)"/>
+    <polygon points="0,0 5,10 15,5 10,15 20,20 10,20 5,15 0,20" transform="translate(60,60)"/>
+    <!-- Connecting lines -->
+    <line x1="20" y1="20" x2="40" y2="5"/>
+    <line x1="60" y1="20" x2="40" y2="5"/>
+    <line x1="20" y1="60" x2="40" y2="55"/>
+    <line x1="60" y1="60" x2="40" y2="55"/>
+    <line x1="5" y1="40" x2="15" y2="30"/>
+    <line x1="75" y1="40" x2="65" y2="30"/>
+    <!-- Circle accents -->
+    <circle cx="40" cy="30" r="8"/>
+    <circle cx="40" cy="30" r="3"/>
+  </g>
+</svg>

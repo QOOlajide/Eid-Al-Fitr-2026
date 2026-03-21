@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, Users, BookOpen, Heart } from 'lucide-react';
+import MosqueIcon from '../assets/mosque.svg';
 import './Home.css';
 
 const Home = () => {
@@ -44,7 +45,7 @@ const Home = () => {
             transition={{ duration: 0.8 }}
           >
             <h1 className="hero-title">Eid Mubarak!</h1>
-            <p className="hero-subtitle">Join us for a blessed celebration of Eid al-Fitr 2025</p>
+            <p className="hero-subtitle">Join us for a blessed celebration of Eid al-Fitr {new Date().getFullYear()}</p>
             <p className="hero-description">
               A day of joy, gratitude, and community. Whether you're a Muslim attendee or a curious visitor, 
               we welcome you to experience the beauty of this sacred celebration.
@@ -66,7 +67,11 @@ const Home = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <div className="hero-placeholder">
-              <div className="mosque-icon">🕌</div>
+              <img
+                src={MosqueIcon}
+                alt="Mosque illustration"
+                className="hero-mosque-icon"
+              />
               <p>Eid Celebration</p>
             </div>
           </motion.div>

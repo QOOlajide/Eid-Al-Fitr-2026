@@ -8,7 +8,7 @@ const UpdatesBanner = () => {
   const { on } = useSocket();
 
   const defaultUpdates = [
-    "Welcome to Eid al-Fitr 2025! Prayer begins at 8:00 AM",
+    `Welcome to Eid al-Fitr ${new Date().getFullYear()}! Prayer begins at 8:00 AM`,
     "Imam has arrived! Prayer will start in 15 minutes",
     "Community breakfast is now being served in the food court",
     "Children's activities are starting in the children's area",

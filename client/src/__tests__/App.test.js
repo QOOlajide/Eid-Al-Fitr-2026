@@ -44,7 +44,7 @@ const AppWithRouter = () => (
 describe('App Component', () => {
   test('renders navigation', () => {
     render(<AppWithRouter />);
-    expect(screen.getByText('Eid al-Fitr 2025')).toBeInTheDocument();
+    expect(screen.getByText(`Eid al-Fitr ${new Date().getFullYear()}`)).toBeInTheDocument();
   });
 
   test('renders home page by default', () => {

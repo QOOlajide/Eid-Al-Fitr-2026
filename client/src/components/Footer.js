@@ -11,7 +11,7 @@ const Footer = () => {
       <div className="container">
         <div className="footer-content">
           <div className="footer-section">
-            <h3>Eid al-Fitr 2025</h3>
+            <h3>Eid al-Fitr {currentYear}</h3>
             <p>Celebrating the blessed day of Eid with our community</p>
             <div className="footer-heart">
               <Heart size={20} />
@@ -53,7 +53,7 @@ const Footer = () => {
               </div>
               <div className="contact-item">
                 <Mail size={16} />
-                <span>info@eid2025.com</span>
+                <span>info@eid2026.com</span>
               </div>
             </div>
           </div>
