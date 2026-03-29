@@ -133,6 +133,9 @@ typings/
 # local ingest state / caches
 server/.data/
 
+# RAG evaluation logs (generated at runtime)
+rag_logs/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
