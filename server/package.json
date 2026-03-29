@@ -9,6 +9,8 @@
     "seed": "node scripts/seedDatabase.js",
     "rag:ingest": "node scripts/ingestRagSources.js",
     "rag:test": "node scripts/ragQuickTest.js",
+    "rag:stats": "node scripts/analyzeRagStats.js",
+    "rag:eval:test": "node scripts/testRagEval.js",
     "gemini:models": "node scripts/listGeminiModels.js",
     "test": "jest",
     "test:watch": "jest --watch",
