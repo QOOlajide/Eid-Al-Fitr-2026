@@ -203,9 +203,13 @@ async function runIngest({
     const domain = normalizeHost(new URL(url).hostname);
     const chunks = chunkText(text);
 
+    const embedDelayMs = Number(process.env.RAG_EMBED_DELAY_MS) || 4000;
+
     for (let idx = 0; idx < chunks.length; idx += 1) {
       const chunk = chunks[idx];
       if (chunk.length < minChunkChars) continue;
+
+      if (idx > 0) await sleep(embedDelayMs);
 
       const embedding = await embedText(chunk);
       if (!embeddedDim) {
