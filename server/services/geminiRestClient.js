@@ -61,7 +61,9 @@ async function geminiGenerateText({ model, prompt }) {
       .filter(Boolean)
       .join('') || '';
 
-  return text;
+  const usage = json?.usageMetadata || null;
+
+  return { text, usage };
 }
 
 async function geminiEmbedText({ model, text, outputDimensionality }) {
