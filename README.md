@@ -290,7 +290,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🙏 Acknowledgments
 
-- Islamic scholars and websites for providing authentic content
+- Islamic websites for providing authentic content
 - Open source community for the amazing tools and libraries
 - Community members for feedback and suggestions
 
