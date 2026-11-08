@@ -25,22 +25,12 @@ function getFallbackModels() {
 
 // Islamic websites to search
 const ISLAMIC_WEBSITES = [
-  'abukhadeejah.com',
-  'bakkah.net',
   'troid.org',
   'abuiyaad.com',
-  'abuhakeem.com',
-  'mpubs.org',
-  'mtws.posthaven.com'
+  'abukhadeejah.com',
+  'salafidawahmanchester.com',
 ];
-
-const ALLOWED_URL_DOMAINS = new Set([
-  'abukhadeejah.com',
-  'abuiyaad.com',
-  'troid.org',
-  'mpubs.org',
-  'bakkah.net',
-]);
+const ALLOWED_URL_DOMAINS = new Set(ISLAMIC_WEBSITES);
 
 function normalizeHost(host) {
   return String(host || '').toLowerCase().replace(/^www\./, '');
