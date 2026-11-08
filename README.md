@@ -13,11 +13,11 @@ A comprehensive full-stack web application for the Eid al-Fitr 2026 community ce
 
 ### RAG Pipeline
 - **Trusted Sources**: Crawls and indexes verified Islamic websites into a vector database (Qdrant), then retrieves relevant chunks at query time:
-  - abukhadeejah.com
   - abuiyaad.com
-  - mpubs.org
-  - bakkah.net
   - troid.org
+  - salafimanchesterdawah.com
+ 
+  And others.
 - **Vector Retrieval**: Uses embeddings + Qdrant similarity search (top‑k chunks) as the retrieval layer
 - **AI-Powered Answers**: Uses Gemini for generating responses grounded in retrieved chunks
 - **Source Attribution**: Each retrieved chunk includes `url`, `domain`, and `title` for citations; the UI also displays sources + confidence
