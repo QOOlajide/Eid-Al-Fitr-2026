@@ -193,19 +193,7 @@ const IslamicQA = () => {
         <div className="qa-info">
           <h3>About This Q&A System</h3>
           <p>
-            This system searches through trusted Islamic websites including:
-          </p>
-          <ul>
-            <li>abukhadeejah.com</li>
-            <li>bakkah.net</li>
-            <li>troid.org</li>
-            <li>abuiyaad.com</li>
-            <li>abuhakeem.com</li>
-            <li>mpubs.org</li>
-            <li>mtws.posthaven.com</li>
-          </ul>
-          <p>
-            All answers are sourced from these reliable Islamic resources to ensure accuracy and authenticity.
+            This system searches through trusted Islamic websites. Frequently updated with new websites.
           </p>
         </div>
       </div>
