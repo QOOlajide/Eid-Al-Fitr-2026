@@ -161,6 +161,44 @@ You need both. And never paste keys into any chat interface.
 
 ---
 
+## 8. Sequelize on Vercel: `Please install pg package manually`
+
+**Symptom:** Function crash / 500 with:
+```
+Error: Please install pg package manually
+  at ConnectionManager._loadDialectModule (.../sequelize/...)
+  at Object.<anonymous> (.../config/database.js)
+```
+
+**Why:** `pg` *was* in `server/package.json` and installed. Sequelize loads the
+driver with a **dynamic** `require` inside its own code. Vercel’s Function bundler
+often misses that, so at runtime the driver looks “missing.”
+
+**Dialect vs driver (mental model):**
+- **Dialect** (`postgres`) — which SQL family Sequelize should speak
+- **Driver** (`pg`) — the Node package that actually opens the connection (“the speaker”)
+- Sequelize does not bundle drivers; you install them yourself
+  ([Sequelize getting started](https://sequelize.org/docs/v6/getting-started/))
+
+**Fix:** Static require + pass the module into Sequelize:
+```js
+const pg = require('pg');
+const sequelize = new Sequelize(..., {
+  dialect: 'postgres',
+  dialectModule: pg,
+});
+```
+See `server/config/database.js`.  
+Reference: [Vercel community discussion #234](https://github.com/vercel/community/discussions/234)
+
+**Related:** Neon (or any cloud Postgres) still needed for real `DB_*` host/user/password.
+Fixing the bundle does not replace configuring a database. See `docs/tradeoffs.md`.
+
+**Rule of thumb:** On serverless, if a library dynamically `require`s an optional
+driver, import it yourself and pass it in (or `includeFiles`) so the tracer sees it.
+
+---
+
 ## Quick Reference: Environment Variables That Saved Us
 
 | Variable | Value | Why |
