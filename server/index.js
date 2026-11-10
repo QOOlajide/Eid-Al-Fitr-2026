@@ -82,12 +82,20 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- Routes ---
-app.get('/health', (req, res) => {
-  res.json({
+function healthPayload() {
+  return {
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+  };
+}
+
+// Root and /health both report liveness (browsers often open `/` first).
+app.get('/', (req, res) => {
+  res.json(healthPayload());
+});
+
+app.get('/health', (req, res) => {
+  res.json(healthPayload());
 });
 
 app.use('/api/auth', authRoutes);
