@@ -50,8 +50,41 @@ const { startIngestionScheduler } = require('./services/ingestionScheduler');
 
 const app = express();
 
-// --- Middleware ---
-app.use(helmet());
+// CORS: local fallback only in non-production. Prod must set CLIENT_URL.
+// Trailing slashes break origin matching — strip them.
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
+let clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+if (!clientUrl) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CLIENT_URL is required when NODE_ENV=production');
+  }
+  clientUrl = 'http://localhost:3000';
+}
+
+// Explicit headers first (preflight + ACAO). Do not rely on cors() alone.
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Allow-Origin
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', clientUrl);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  next();
+});
+
+app.use(cors({
+  origin: clientUrl,
+  credentials: true,
+}));
+
+// Helmet default CORP is same-origin and can interfere with cross-origin API use.
+// https://helmetjs.github.io/#cross-origin-resource-policy
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(compression());
 
 const limiter = rateLimit({
@@ -60,22 +93,6 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.',
 });
 app.use('/api/', limiter);
-
-// CORS: local fallback only in non-production. Prod must set CLIENT_URL
-// (browser origin of the frontend). See cors package `origin` option:
-// https://github.com/expressjs/cors#configuration-options
-let clientUrl = process.env.CLIENT_URL;
-if (!clientUrl) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('CLIENT_URL is required when NODE_ENV=production');
-  }
-  clientUrl = 'http://localhost:3000';
-}
-
-app.use(cors({
-  origin: clientUrl,
-  credentials: true,
-}));
 
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));

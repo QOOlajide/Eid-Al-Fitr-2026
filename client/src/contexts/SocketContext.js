@@ -16,20 +16,24 @@ export const SocketProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const newSocket = io(process.env.REACT_APP_SERVER_URL || 'http://localhost:5000');
-    
+    // Production must set REACT_APP_SERVER_URL. Do not fall back to localhost
+    // on a deployed site — that spams ERR_CONNECTION_REFUSED and is unrelated to RAG.
+    const serverUrl =
+      process.env.REACT_APP_SERVER_URL ||
+      (process.env.NODE_ENV !== 'production' ? 'http://localhost:5000' : null);
+
+    if (!serverUrl) {
+      return undefined;
+    }
+
+    const newSocket = io(serverUrl, { autoConnect: true, reconnection: false });
+
     newSocket.on('connect', () => {
-      console.log('Connected to server');
       setConnected(true);
     });
 
     newSocket.on('disconnect', () => {
-      console.log('Disconnected from server');
       setConnected(false);
-    });
-
-    newSocket.on('update', (data) => {
-      console.log('Received update:', data);
     });
 
     setSocket(newSocket);

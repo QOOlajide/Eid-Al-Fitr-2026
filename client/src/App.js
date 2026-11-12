@@ -18,8 +18,10 @@ import Forum from './pages/Forum';
 import IslamicQA from './pages/IslamicQA';
 import Footer from './components/Footer';
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
+// Stripe is optional — missing publishable key must not crash the whole app (incl. RAG).
+// https://stripe.com/docs/stripe-js/react
+const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 function App() {
   return (

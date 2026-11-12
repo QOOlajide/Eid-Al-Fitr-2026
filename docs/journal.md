@@ -46,3 +46,6 @@ Browsers block cross-origin API calls unless the backend allows the frontend ori
 ## Flagged next
 - Step 2: point frontend API calls at deployed backend URL
 - Step 3: Neon + Qdrant Cloud + Gemini env on server project
+
+## References (read later)
+- [Building a Memory-Enabled RAG System with Qdrant and PostgreSQL](https://medium.com/@naeem.ahmed.bdn/building-a-memory-enabled-rag-system-with-qdrant-and-postgresql-ebed2224618f) — relevant to our split: Qdrant for vectors, Postgres/Neon for app/memory-style state.
