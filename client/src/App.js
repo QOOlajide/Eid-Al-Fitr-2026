@@ -23,30 +23,40 @@ import Footer from './components/Footer';
 const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
+function AppShell() {
+  return (
+    <div className="App">
+      <Navbar />
+      <UpdatesBanner />
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/venue" element={<Venue />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/prayer-guide" element={<PrayerGuide />} />
+          <Route path="/zakat" element={<ZakatPayment />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/islamic-qa" element={<IslamicQA />} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <SocketProvider>
           <RAGProvider>
-            <Elements stripe={stripePromise}>
-              <div className="App">
-                <Navbar />
-                <UpdatesBanner />
-                <main>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/venue" element={<Venue />} />
-                    <Route path="/schedule" element={<Schedule />} />
-                    <Route path="/prayer-guide" element={<PrayerGuide />} />
-                    <Route path="/zakat" element={<ZakatPayment />} />
-                    <Route path="/forum" element={<Forum />} />
-                    <Route path="/islamic-qa" element={<IslamicQA />} />
-                  </Routes>
-                </main>
-                <Footer />
-              </div>
-            </Elements>
+            {stripePromise ? (
+              <Elements stripe={stripePromise}>
+                <AppShell />
+              </Elements>
+            ) : (
+              <AppShell />
+            )}
           </RAGProvider>
         </SocketProvider>
       </AuthProvider>

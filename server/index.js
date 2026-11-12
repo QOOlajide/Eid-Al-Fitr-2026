@@ -50,22 +50,51 @@ const { startIngestionScheduler } = require('./services/ingestionScheduler');
 
 const app = express();
 
-// CORS: local fallback only in non-production. Prod must set CLIENT_URL.
-// Trailing slashes break origin matching — strip them.
+// CORS allowlist. With credentials, ACAO must echo the request Origin exactly
+// (not a fixed single URL) when multiple frontends exist (prod + Vercel previews).
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
-let clientUrl = (process.env.CLIENT_URL || '').replace(/\/$/, '');
-if (!clientUrl) {
+function normalizeOrigin(url) {
+  return String(url || '').trim().replace(/\/$/, '');
+}
+
+const allowedOrigins = [
+  normalizeOrigin(process.env.CLIENT_URL),
+  ...(process.env.CLIENT_URLS || '').split(',').map(normalizeOrigin),
+].filter(Boolean);
+
+if (allowedOrigins.length === 0) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('CLIENT_URL is required when NODE_ENV=production');
   }
-  clientUrl = 'http://localhost:3000';
+  allowedOrigins.push('http://localhost:3000');
 }
 
-// Explicit headers first (preflight + ACAO). Do not rely on cors() alone.
+// Primary prod frontend (also used as a default label in logs / Socket fallback).
+const clientUrl = allowedOrigins[0];
+
+function isAllowedOrigin(origin) {
+  const o = normalizeOrigin(origin);
+  if (!o) return false;
+  if (allowedOrigins.includes(o)) return true;
+  // Vercel frontend previews: eid-al-fitr-2026-*.vercel.app, but not the API project (-jeuq).
+  if (
+    o.startsWith('https://eid-al-fitr-2026') &&
+    o.endsWith('.vercel.app') &&
+    !o.includes('eid-al-fitr-2026-jeuq')
+  ) {
+    return true;
+  }
+  return false;
+}
+
+// Explicit headers first (preflight + ACAO).
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Access-Control-Allow-Origin
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', clientUrl);
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  const origin = normalizeOrigin(req.headers.origin);
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Vary', 'Origin');
@@ -76,7 +105,13 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: clientUrl,
+  origin(origin, callback) {
+    if (!origin || isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
   credentials: true,
 }));
 
@@ -147,8 +182,15 @@ async function startServer() {
   const server = createServer(app);
   const io = new Server(server, {
     cors: {
-      origin: clientUrl,
+      origin: (origin, callback) => {
+        if (!origin || isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`Socket CORS blocked for origin: ${origin}`));
+        }
+      },
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
