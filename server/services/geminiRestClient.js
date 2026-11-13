@@ -11,6 +11,29 @@ function modelToPath(model) {
   return m.startsWith('models/') ? m : `models/${m}`;
 }
 
+function geminiTimeoutMs() {
+  const n = Number(process.env.GEMINI_TIMEOUT_MS || 20000);
+  return Number.isFinite(n) && n > 0 ? n : 20000;
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const timeoutMs = geminiTimeoutMs();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (e) {
+    if (e?.name === 'AbortError') {
+      const err = new Error(`Gemini request timed out after ${timeoutMs}ms`);
+      err.status = 504;
+      throw err;
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function geminiGenerateText({ model, prompt }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
@@ -25,7 +48,7 @@ async function geminiGenerateText({ model, prompt }) {
     ],
   };
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -33,7 +56,7 @@ async function geminiGenerateText({ model, prompt }) {
 
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    const err = new Error(`Gemini generateContent failed (${res.status})`);
+    const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
     err.status = res.status;
     err.statusText = res.statusText;
     err.body = txt;
@@ -82,7 +105,7 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
     body.outputDimensionality = outputDimensionality;
   }
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -90,7 +113,7 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
 
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    const err = new Error(`Gemini embedContent failed (${res.status})`);
+    const err = new Error(`Gemini embedContent failed (${res.status}) for ${modelPath}`);
     err.status = res.status;
     err.statusText = res.statusText;
     err.body = txt;

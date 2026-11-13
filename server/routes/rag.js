@@ -5,6 +5,19 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Ops probe: which RAG deps are configured (booleans only — no secrets).
+router.get('/ready', (req, res) => {
+  res.json({
+    ok: Boolean(process.env.GEMINI_API_KEY),
+    geminiKey: Boolean(process.env.GEMINI_API_KEY),
+    qdrantUrl: Boolean(process.env.QDRANT_URL),
+    qdrantKey: Boolean(process.env.QDRANT_API_KEY),
+    retriever: process.env.RAG_RETRIEVER || 'vector',
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash',
+    embedModel: process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-001',
+  });
+});
+
 // Ask using user-provided URLs (no manual ingestion required)
 router.post('/ask', [
   body('query').trim().isLength({ min: 3, max: 500 }).withMessage('Query must be between 3 and 500 characters'),
@@ -64,9 +77,10 @@ router.post('/search', [
     });
   } catch (error) {
     console.error('RAG search error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to search Islamic knowledge',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      // Safe operational detail (missing key / model / timeout) — no stack/secrets.
+      error: error.message || 'unknown',
     });
   }
 });

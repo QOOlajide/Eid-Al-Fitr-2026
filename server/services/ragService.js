@@ -8,12 +8,9 @@ const crypto = require('crypto');
 const { makeQueryId, logRetrievalEvent, logAnswerEvent } = require('./ragEval');
 const { classifyQuery, isLowRelevance } = require('./queryGuardrail');
 
-// Model preference order:
-// 1) gemini-3-pro-preview
-// 2) gemini-3-flash-preview
-// 3) gemini-2.5-pro
-const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || "gemini-3-pro-preview";
-const DEFAULT_FALLBACK_MODELS = ["gemini-3-flash-preview", "gemini-2.5-pro"];
+// Prefer widely available Flash models by default; override via env on Vercel.
+const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash';
+const DEFAULT_FALLBACK_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.5-flash'];
 
 function getFallbackModels() {
   const envList = (process.env.GEMINI_FALLBACK_MODELS || '')
@@ -213,16 +210,21 @@ class RAGService {
 
       return result;
     } catch (error) {
+      const detail = error?.message || 'Failed to search Islamic knowledge';
       logAnswerEvent({
         queryId,
         query,
         status: 'error',
-        errorMessage: error.message,
+        errorMessage: detail,
         totalLatencyMs: Date.now() - startTime,
         endpoint: 'search',
       });
       console.error('RAG search error:', error);
-      throw new Error('Failed to search Islamic knowledge');
+      // Keep the operational message (missing key / Gemini status / timeout)
+      // so the route can return it — "Failed to search…" alone hid the cause.
+      const err = new Error(detail);
+      err.status = error?.status;
+      throw err;
     }
   }
 
@@ -579,7 +581,10 @@ Answer:`;
       throw lastErr || new Error('Gemini generateContent failed');
     } catch (error) {
       console.error('Gemini API error:', error);
-      throw new Error('Failed to generate answer');
+      const detail = error?.message || 'Failed to generate answer';
+      const err = new Error(detail);
+      err.status = error?.status;
+      throw err;
     }
   }
 
