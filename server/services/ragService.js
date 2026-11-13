@@ -400,7 +400,7 @@ class RAGService {
     const qdrant = vectorStore.getQdrantClient();
     const qid = queryId || makeQueryId(query);
     const topK = Number(process.env.RAG_TOP_K || 6);
-    const embedModel = process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-001';
+    const embedModel = process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-2';
 
     if (retriever === 'vector' && qdrant) {
       try {
