@@ -570,9 +570,15 @@ Answer:`;
         } catch (e) {
           lastErr = e;
           const status = Number(e?.status);
+          // Retry another model when this one is unavailable / overloaded / timed out.
+          // 503 was previously treated as fatal, which hid working fallbacks when
+          // GEMINI_CHAT_MODEL pointed at a preview model Google returned as unavailable.
           const isRetryableForFallback =
-            status === 404 || // model not found/unsupported
-            status === 429;   // quota/rate limit (try cheaper model)
+            status === 404 ||
+            status === 429 ||
+            status === 500 ||
+            status === 503 ||
+            status === 504;
 
           if (!isRetryableForFallback) break;
         }
@@ -648,7 +654,8 @@ Return only the questions, one per line, without numbering.`;
           if (text) break;
         } catch (e) {
           const status = Number(e?.status);
-          const isRetryableForFallback = status === 404 || status === 429;
+          const isRetryableForFallback =
+            status === 404 || status === 429 || status === 500 || status === 503 || status === 504;
           if (!isRetryableForFallback) break;
         }
       }
