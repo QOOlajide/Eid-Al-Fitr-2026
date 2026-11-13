@@ -8,9 +8,10 @@ const crypto = require('crypto');
 const { makeQueryId, logRetrievalEvent, logAnswerEvent } = require('./ragEval');
 const { classifyQuery, isLowRelevance } = require('./queryGuardrail');
 
-// Prefer widely available Flash models by default; override via env on Vercel.
-const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash';
-const DEFAULT_FALLBACK_MODELS = ['gemini-2.0-flash-lite', 'gemini-2.5-flash'];
+// Current Gemini API defaults (Nov 2026). gemini-2.0-flash is shut down.
+// https://aistudio.google.com/docs/models
+const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash';
+const DEFAULT_FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
 
 function getFallbackModels() {
   const envList = (process.env.GEMINI_FALLBACK_MODELS || '')
@@ -570,9 +571,7 @@ Answer:`;
         } catch (e) {
           lastErr = e;
           const status = Number(e?.status);
-          // Retry another model when this one is unavailable / overloaded / timed out.
-          // 503 was previously treated as fatal, which hid working fallbacks when
-          // GEMINI_CHAT_MODEL pointed at a preview model Google returned as unavailable.
+          // After per-request retries, switch model on transient/unavailable responses.
           const isRetryableForFallback =
             status === 404 ||
             status === 429 ||

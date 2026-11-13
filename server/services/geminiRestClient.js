@@ -12,8 +12,23 @@ function modelToPath(model) {
 }
 
 function geminiTimeoutMs() {
-  const n = Number(process.env.GEMINI_TIMEOUT_MS || 20000);
-  return Number.isFinite(n) && n > 0 ? n : 20000;
+  // Gemini 3.x thinking models often need >20s under load; keep under typical
+  // Vercel Function limits unless overridden.
+  const n = Number(process.env.GEMINI_TIMEOUT_MS || 45000);
+  return Number.isFinite(n) && n > 0 ? n : 45000;
+}
+
+function geminiMaxRetries() {
+  const n = Number(process.env.GEMINI_MAX_RETRIES || 3);
+  return Number.isFinite(n) && n >= 0 ? Math.min(n, 5) : 3;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientStatus(status) {
+  return status === 408 || status === 429 || status === 500 || status === 503 || status === 504;
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -34,6 +49,56 @@ async function fetchWithTimeout(url, options = {}) {
   }
 }
 
+function attachRetryHints(err, txt) {
+  try {
+    const json = JSON.parse(txt);
+    const retryDelay = json?.error?.details?.find?.((d) => d?.['@type']?.includes('RetryInfo'))?.retryDelay;
+    if (typeof retryDelay === 'string' && retryDelay.endsWith('s')) {
+      const seconds = Number(retryDelay.slice(0, -1));
+      if (Number.isFinite(seconds)) {
+        err.retryAfterSeconds = seconds;
+        err.retryAfterMs = Math.round(seconds * 1000);
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return err;
+}
+
+/**
+ * Retry transient Gemini failures with exponential backoff + jitter.
+ * Docs: 429/503 are expected under load; SDKs retry by default — our raw fetch must too.
+ * https://ai.google.dev/gemini-api/docs/troubleshooting
+ */
+async function withRetries(fn) {
+  const maxRetries = geminiMaxRetries();
+  let lastErr = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const status = Number(e?.status);
+      const canRetry = isTransientStatus(status);
+      if (!canRetry || attempt === maxRetries) throw e;
+      const base = e.retryAfterMs || Math.min(1000 * 2 ** attempt, 8000);
+      const jitter = Math.floor(Math.random() * 250);
+      await sleep(base + jitter);
+    }
+  }
+  throw lastErr || new Error('Gemini request failed');
+}
+
+function thinkingLevel() {
+  // Gemini 3.8 Flash defaults to MEDIUM thinking — fine for agents, too slow for RAG chat.
+  // LOW keeps quality usable while cutting latency. MINIMAL is NOT valid on 3.8 Flash.
+  // https://aistudio.google.com/docs/whats-new-gemini-3.8
+  const level = String(process.env.GEMINI_THINKING_LEVEL || 'LOW').trim().toUpperCase();
+  if (['LOW', 'MEDIUM', 'HIGH'].includes(level)) return level;
+  return 'LOW';
+}
+
 async function geminiGenerateText({ model, prompt }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
@@ -46,47 +111,41 @@ async function geminiGenerateText({ model, prompt }) {
         parts: [{ text: String(prompt || '') }],
       },
     ],
+    generationConfig: {
+      thinkingConfig: {
+        thinkingLevel: thinkingLevel(),
+      },
+    },
   };
 
-  const res = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  return withRetries(async () => {
+    const res = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
-    err.status = res.status;
-    err.statusText = res.statusText;
-    err.body = txt;
-    // Try to extract server-provided retry delay (e.g. "retryDelay": "45s")
-    try {
-      const json = JSON.parse(txt);
-      const retryDelay = json?.error?.details?.find?.((d) => d?.['@type']?.includes('RetryInfo'))?.retryDelay;
-      if (typeof retryDelay === 'string' && retryDelay.endsWith('s')) {
-        const seconds = Number(retryDelay.slice(0, -1));
-        if (Number.isFinite(seconds)) {
-          err.retryAfterSeconds = seconds;
-          err.retryAfterMs = Math.round(seconds * 1000);
-        }
-      }
-    } catch {
-      // ignore
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
+      err.status = res.status;
+      err.statusText = res.statusText;
+      err.body = txt;
+      attachRetryHints(err, txt);
+      throw err;
     }
-    throw err;
-  }
 
-  const json = await res.json();
-  const text =
-    json?.candidates?.[0]?.content?.parts
-      ?.map((p) => p?.text)
-      .filter(Boolean)
-      .join('') || '';
+    const json = await res.json();
+    const text =
+      json?.candidates?.[0]?.content?.parts
+        ?.map((p) => p?.text)
+        .filter(Boolean)
+        .join('') || '';
 
-  const usage = json?.usageMetadata || null;
+    const usage = json?.usageMetadata || null;
 
-  return { text, usage };
+    return { text, usage };
+  });
 }
 
 async function geminiEmbedText({ model, text, outputDimensionality }) {
@@ -105,39 +164,41 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
     body.outputDimensionality = outputDimensionality;
   }
 
-  const res = await fetchWithTimeout(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  return withRetries(async () => {
+    const res = await fetchWithTimeout(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      const err = new Error(`Gemini embedContent failed (${res.status}) for ${modelPath}`);
+      err.status = res.status;
+      err.statusText = res.statusText;
+      err.body = txt;
+      attachRetryHints(err, txt);
+      throw err;
+    }
+
+    const json = await res.json();
+    // shapes vary by SDK; normalize a bit
+    const values =
+      json?.embedding?.values ||
+      json?.embedding?.value ||
+      json?.embedding ||
+      json?.embeddings?.[0]?.values ||
+      json?.embeddings?.[0]?.value;
+
+    if (!Array.isArray(values)) {
+      throw new Error('Unexpected embedding response shape from Gemini embedContent');
+    }
+
+    return values;
   });
-
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    const err = new Error(`Gemini embedContent failed (${res.status}) for ${modelPath}`);
-    err.status = res.status;
-    err.statusText = res.statusText;
-    err.body = txt;
-    throw err;
-  }
-
-  const json = await res.json();
-  // shapes vary by SDK; normalize a bit
-  const values =
-    json?.embedding?.values ||
-    json?.embedding?.value ||
-    json?.embedding ||
-    json?.embeddings?.[0]?.values ||
-    json?.embeddings?.[0]?.value;
-
-  if (!Array.isArray(values)) {
-    throw new Error('Unexpected embedding response shape from Gemini embedContent');
-  }
-
-  return values;
 }
 
 module.exports = {
   geminiGenerateText,
   geminiEmbedText,
 };
-

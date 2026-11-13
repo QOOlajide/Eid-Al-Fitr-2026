@@ -4,7 +4,7 @@ async function embedText(text) {
   const input = String(text || '').trim();
   if (!input) return [];
 
-  const embedModel = process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-001';
+  const embedModel = process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-2';
   const outputDimensionalityRaw = process.env.GEMINI_EMBED_OUTPUT_DIM;
   const outputDimensionality = outputDimensionalityRaw ? Number(outputDimensionalityRaw) : undefined;
 

@@ -13,8 +13,9 @@ router.get('/ready', (req, res) => {
     qdrantUrl: Boolean(process.env.QDRANT_URL),
     qdrantKey: Boolean(process.env.QDRANT_API_KEY),
     retriever: process.env.RAG_RETRIEVER || 'vector',
-    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-2.0-flash',
-    embedModel: process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-001',
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash',
+    embedModel: process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-2',
+    thinkingLevel: process.env.GEMINI_THINKING_LEVEL || 'LOW',
   });
 });
 
