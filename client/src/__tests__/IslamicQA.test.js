@@ -75,6 +75,12 @@ describe('IslamicQA Component', () => {
     await waitFor(() => {
       expect(mockSearchIslamicKnowledge).toHaveBeenCalledWith('What is Eid al-Fitr?');
     });
+
+    // Search path must succeed (UI treats success:false / HTTP failures as dead).
+    // Jest: expect(x).toBe(y) === pytest assert x == y
+    const searchResult = await mockSearchIslamicKnowledge.mock.results[0].value;
+    expect(searchResult.success).toBe(true);
+    expect(searchResult.error).toBeUndefined();
   });
 
   test('displays search results', async () => {

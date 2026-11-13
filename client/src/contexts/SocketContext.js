@@ -16,16 +16,14 @@ export const SocketProvider = ({ children }) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Production must set REACT_APP_SERVER_URL. Do not fall back to localhost
-    // on a deployed site — that spams ERR_CONNECTION_REFUSED and is unrelated to RAG.
-    const serverUrl =
-      process.env.REACT_APP_SERVER_URL ||
-      (process.env.NODE_ENV !== 'production' ? 'http://localhost:5000' : null);
-
-    if (!serverUrl) {
+    // Vercel exports Express without Socket.IO (startServer() never runs there).
+    // Connecting in production only produces /socket.io 404s and does not affect RAG.
+    // Local `npm start` still connects so UpdatesBanner can use realtime.
+    if (process.env.NODE_ENV === 'production') {
       return undefined;
     }
 
+    const serverUrl = process.env.REACT_APP_SERVER_URL || 'http://localhost:5000';
     const newSocket = io(serverUrl, { autoConnect: true, reconnection: false });
 
     newSocket.on('connect', () => {

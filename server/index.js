@@ -57,15 +57,13 @@ function normalizeOrigin(url) {
   return String(url || '').trim().replace(/\/$/, '');
 }
 
-const allowedOrigins = [
-  normalizeOrigin(process.env.CLIENT_URL),
-  ...(process.env.CLIENT_URLS || '').split(',').map(normalizeOrigin),
-].filter(Boolean);
-
-if (allowedOrigins.length === 0) {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('CLIENT_URL is required when NODE_ENV=production');
-  }
+const allowedOrigins = [];
+const clientUrlFromEnv = normalizeOrigin(process.env.CLIENT_URL);
+if (clientUrlFromEnv) {
+  allowedOrigins.push(clientUrlFromEnv);
+} else if (process.env.NODE_ENV === 'production') {
+  throw new Error('CLIENT_URL is required when NODE_ENV=production');
+} else {
   allowedOrigins.push('http://localhost:3000');
 }
 
