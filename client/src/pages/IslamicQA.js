@@ -7,12 +7,15 @@ const IslamicQA = () => {
   const [query, setQuery] = useState('');
   const [sourceUrls, setSourceUrls] = useState('');
   const [searchResults, setSearchResults] = useState(null);
+  const [error, setError] = useState('');
   const [relatedQuestions, setRelatedQuestions] = useState([]);
   const { loading, searchHistory, searchIslamicKnowledge, askFromUrls, getRelatedQuestions, clearHistory } = useRAG();
 
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!query.trim()) return;
+    setError('');
+    setSearchResults(null);
 
     const urls = sourceUrls
       .split('\n')
@@ -22,6 +25,11 @@ const IslamicQA = () => {
     const result = urls.length > 0
       ? await askFromUrls(query, urls)
       : await searchIslamicKnowledge(query);
+
+    if (!result.success) {
+      setError(result.error || 'Something went wrong. Please try again.');
+      return;
+    }
 
     if (result.success) {
       setSearchResults(result.data);
@@ -36,9 +44,13 @@ const IslamicQA = () => {
 
   const handleRelatedQuestion = async (question) => {
     setQuery(question);
+    setError('');
+    setSearchResults(null);
     const result = await searchIslamicKnowledge(question);
     if (result.success) {
       setSearchResults(result.data);
+    } else {
+      setError(result.error || 'Something went wrong. Please try again.');
     }
   };
 
@@ -94,6 +106,12 @@ const IslamicQA = () => {
                 />
               </div>
             </form>
+
+            {error && (
+              <p role="alert" style={{ color: '#b91c1c', marginTop: 12 }}>
+                {error}
+              </p>
+            )}
 
             {relatedQuestions.length > 0 && (
               <div className="related-questions">
