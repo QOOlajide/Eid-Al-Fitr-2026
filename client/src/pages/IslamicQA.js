@@ -27,6 +27,7 @@ const IslamicQA = () => {
       : await searchIslamicKnowledge(query);
 
     if (!result.success) {
+      console.error('[RAG:search]', result.error);
       setError('Unable to complete your search. Please try again.');
       return;
     }
@@ -50,6 +51,7 @@ const IslamicQA = () => {
     if (result.success) {
       setSearchResults(result.data);
     } else {
+      console.error('[RAG:related-question]', result.error);
       setError('Unable to complete your search. Please try again.');
     }
   };
