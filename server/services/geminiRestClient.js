@@ -102,7 +102,7 @@ function thinkingLevel() {
 async function geminiGenerateText({ model, prompt }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
-  const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
 
   const body = {
     contents: [
@@ -121,7 +121,10 @@ async function geminiGenerateText({ model, prompt }) {
   return withRetries(async () => {
     const res = await fetchWithTimeout(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY,
+      },
       body: JSON.stringify(body),
     });
 
@@ -151,7 +154,7 @@ async function geminiGenerateText({ model, prompt }) {
 async function geminiEmbedText({ model, text, outputDimensionality }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
-  const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:embedContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:embedContent`;
 
   // REST embedContent expects a "content" object (SDKs may accept "contents" and translate).
   // Using the canonical REST shape avoids 400s.
@@ -167,7 +170,10 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
   return withRetries(async () => {
     const res = await fetchWithTimeout(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': process.env.GEMINI_API_KEY,
+      },
       body: JSON.stringify(body),
     });
 

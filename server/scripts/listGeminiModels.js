@@ -10,8 +10,8 @@ async function main() {
   }
 
   // Use the public Generative Language API listModels endpoint to avoid SDK method drift.
-  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`;
-  const res = await fetch(url, { method: 'GET' });
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models';
+  const res = await fetch(url, { method: 'GET', headers: { 'x-goog-api-key': key } });
 
   if (!res.ok) {
     const body = await res.text();
