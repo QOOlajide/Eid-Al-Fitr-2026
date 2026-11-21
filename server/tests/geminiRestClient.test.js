@@ -26,6 +26,7 @@ describe('geminiRestClient API key handling', () => {
     global.fetch = originalFetch;
     process.env.GEMINI_API_KEY = originalKey;
     delete process.env.GEMINI_MAX_RETRIES;
+    jest.restoreAllMocks();
   });
 
   test('generateContent sends the key in the x-goog-api-key header, not the URL', async () => {
@@ -46,5 +47,35 @@ describe('geminiRestClient API key handling', () => {
     expect(url).not.toContain('key=');
     expect(url).not.toContain(TEST_KEY);
     expect(opts.headers['x-goog-api-key']).toBe(TEST_KEY);
+  });
+
+  test('a failed embed call does not expose the key in the error or console output', async () => {
+    global.fetch = async () => ({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      text: async () => JSON.stringify({
+        error: { code: 400, message: 'Invalid request', status: 'INVALID_ARGUMENT' },
+      }),
+      json: async () => ({}),
+    });
+
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    let caught;
+    try {
+      await geminiEmbedText({ model: 'embed-test', text: 'hi' });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeDefined();
+    expect(caught.message).not.toContain(TEST_KEY);
+    expect(JSON.stringify(caught)).not.toContain(TEST_KEY);
+    for (const spy of [logSpy, errorSpy, warnSpy]) {
+      expect(JSON.stringify(spy.mock.calls)).not.toContain(TEST_KEY);
+    }
   });
 });
