@@ -40,7 +40,7 @@ async function fetchWithTimeout(url, options = {}) {
   } catch (e) {
     if (e?.name === 'AbortError') {
       const err = new Error(`Gemini request timed out after ${timeoutMs}ms`);
-      err.status = 504;
+      err.isTimeout = true;
       throw err;
     }
     throw e;
