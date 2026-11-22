@@ -79,3 +79,35 @@ describe('geminiRestClient API key handling', () => {
     }
   });
 });
+
+
+describe('local Gemini timeout', () => {
+  test('sets isTimeout without inventing an upstream HTTP status', async () => {
+    const originalFetch = global.fetch;
+    const originalKey = process.env.GEMINI_API_KEY;
+    const originalTimeout = process.env.GEMINI_TIMEOUT_MS;
+    const originalRetries = process.env.GEMINI_MAX_RETRIES;
+    try {
+      process.env.GEMINI_API_KEY = TEST_KEY;
+      process.env.GEMINI_TIMEOUT_MS = '10';
+      process.env.GEMINI_MAX_RETRIES = '0';
+      global.fetch = (_url, options) => new Promise((_resolve, reject) => {
+        options.signal.addEventListener('abort', () => {
+          const error = new Error('aborted');
+          error.name = 'AbortError';
+          reject(error);
+        }, { once: true });
+      });
+      await expect(geminiGenerateText({ model: 'gemini-test', prompt: 'hi' }))
+        .rejects.toMatchObject({ isTimeout: true, message: 'Gemini request timed out after 10ms' });
+    } finally {
+      global.fetch = originalFetch;
+      if (originalKey === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = originalKey;
+      if (originalTimeout === undefined) delete process.env.GEMINI_TIMEOUT_MS;
+      else process.env.GEMINI_TIMEOUT_MS = originalTimeout;
+      if (originalRetries === undefined) delete process.env.GEMINI_MAX_RETRIES;
+      else process.env.GEMINI_MAX_RETRIES = originalRetries;
+    }
+  });
+});
