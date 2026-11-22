@@ -225,6 +225,7 @@ class RAGService {
       // so the route can return it — "Failed to search…" alone hid the cause.
       const err = new Error(detail);
       err.status = error?.status;
+      err.isTimeout = error?.isTimeout === true;
       throw err;
     }
   }
@@ -577,7 +578,8 @@ Answer:`;
             status === 429 ||
             status === 500 ||
             status === 503 ||
-            status === 504;
+            status === 504 ||
+            e?.isTimeout === true;
 
           if (!isRetryableForFallback) break;
         }
@@ -589,6 +591,7 @@ Answer:`;
       const detail = error?.message || 'Failed to generate answer';
       const err = new Error(detail);
       err.status = error?.status;
+      err.isTimeout = error?.isTimeout === true;
       throw err;
     }
   }
