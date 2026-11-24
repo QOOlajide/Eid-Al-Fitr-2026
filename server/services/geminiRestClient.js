@@ -116,37 +116,35 @@ async function geminiGenerateText({ model, prompt }) {
     },
   };
 
-  return withRetries(async () => {
-    const res = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': process.env.GEMINI_API_KEY,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
-      err.status = res.status;
-      err.statusText = res.statusText;
-      err.body = txt;
-      attachRetryHints(err, txt);
-      throw err;
-    }
-
-    const json = await res.json();
-    const text =
-      json?.candidates?.[0]?.content?.parts
-        ?.map((p) => p?.text)
-        .filter(Boolean)
-        .join('') || '';
-
-    const usage = json?.usageMetadata || null;
-
-    return { text, usage };
+  const res = await fetchWithTimeout(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': process.env.GEMINI_API_KEY,
+    },
+    body: JSON.stringify(body),
   });
+
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
+    err.status = res.status;
+    err.statusText = res.statusText;
+    err.body = txt;
+    attachRetryHints(err, txt);
+    throw err;
+  }
+
+  const json = await res.json();
+  const text =
+    json?.candidates?.[0]?.content?.parts
+      ?.map((p) => p?.text)
+      .filter(Boolean)
+      .join('') || '';
+
+  const usage = json?.usageMetadata || null;
+
+  return { text, usage };
 }
 
 async function geminiEmbedText({ model, text, outputDimensionality }) {
