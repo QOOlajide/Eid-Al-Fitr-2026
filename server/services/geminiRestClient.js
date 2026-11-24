@@ -12,10 +12,9 @@ function modelToPath(model) {
 }
 
 function geminiTimeoutMs() {
-  // Gemini 3.x thinking models often need >20s under load; keep under typical
-  // Vercel Function limits unless overridden.
-  const n = Number(process.env.GEMINI_TIMEOUT_MS || 45000);
-  return Number.isFinite(n) && n > 0 ? n : 45000;
+  // Default per-request timeout; can be overridden through configuration.
+  const n = Number(process.env.GEMINI_TIMEOUT_MS || 8000);
+  return Number.isFinite(n) && n > 0 ? n : 8000;
 }
 
 function geminiMaxRetries() {
