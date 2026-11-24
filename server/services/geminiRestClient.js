@@ -31,8 +31,7 @@ function isTransientStatus(status) {
   return status === 408 || status === 429 || status === 500 || status === 503 || status === 504;
 }
 
-async function fetchWithTimeout(url, options = {}) {
-  const timeoutMs = geminiTimeoutMs();
+async function fetchWithTimeout(url, options = {}, timeoutMs = geminiTimeoutMs()) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
