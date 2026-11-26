@@ -33,17 +33,23 @@ function isTransientStatus(status) {
 async function fetchWithTimeout(url, options = {}, timeoutMs = geminiTimeoutMs()) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } catch (e) {
-    if (e?.name === 'AbortError') {
+  const stopTimeout = () => clearTimeout(timer);
+
+  function normalizeError(e) {
+    if (controller.signal.aborted && e?.name === 'AbortError') {
       const err = new Error(`Gemini request timed out after ${timeoutMs}ms`);
       err.isTimeout = true;
-      throw err;
+      return err;
     }
-    throw e;
-  } finally {
-    clearTimeout(timer);
+    return e;
+  }
+
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return { response, stopTimeout, normalizeError };
+  } catch (e) {
+    stopTimeout();
+    throw normalizeError(e);
   }
 }
 
@@ -116,7 +122,7 @@ async function geminiGenerateText({ model, prompt }) {
     },
   };
 
-  const res = await fetchWithTimeout(url, {
+  const { response: res, stopTimeout, normalizeError } = await fetchWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -125,26 +131,35 @@ async function geminiGenerateText({ model, prompt }) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
-    err.status = res.status;
-    err.statusText = res.statusText;
-    err.body = txt;
-    attachRetryHints(err, txt);
-    throw err;
+  try {
+    if (!res.ok) {
+      const txt = await res.text().catch((e) => {
+        if (normalizeError(e)?.isTimeout) throw e;
+        return '';
+      });
+      const err = new Error(`Gemini generateContent failed (${res.status}) for ${modelPath}`);
+      err.status = res.status;
+      err.statusText = res.statusText;
+      err.body = txt;
+      attachRetryHints(err, txt);
+      throw err;
+    }
+
+    const json = await res.json();
+    const text =
+      json?.candidates?.[0]?.content?.parts
+        ?.map((p) => p?.text)
+        .filter(Boolean)
+        .join('') || '';
+
+    const usage = json?.usageMetadata || null;
+
+    return { text, usage };
+  } catch (e) {
+    throw normalizeError(e);
+  } finally {
+    stopTimeout();
   }
-
-  const json = await res.json();
-  const text =
-    json?.candidates?.[0]?.content?.parts
-      ?.map((p) => p?.text)
-      .filter(Boolean)
-      .join('') || '';
-
-  const usage = json?.usageMetadata || null;
-
-  return { text, usage };
 }
 
 async function geminiEmbedText({ model, text, outputDimensionality }) {
@@ -164,7 +179,7 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
   }
 
   return withRetries(async () => {
-    const res = await fetchWithTimeout(url, {
+    const { response: res, stopTimeout, normalizeError } = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -173,30 +188,39 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      const err = new Error(`Gemini embedContent failed (${res.status}) for ${modelPath}`);
-      err.status = res.status;
-      err.statusText = res.statusText;
-      err.body = txt;
-      attachRetryHints(err, txt);
-      throw err;
+    try {
+      if (!res.ok) {
+        const txt = await res.text().catch((e) => {
+          if (normalizeError(e)?.isTimeout) throw e;
+          return '';
+        });
+        const err = new Error(`Gemini embedContent failed (${res.status}) for ${modelPath}`);
+        err.status = res.status;
+        err.statusText = res.statusText;
+        err.body = txt;
+        attachRetryHints(err, txt);
+        throw err;
+      }
+
+      const json = await res.json();
+      // shapes vary by SDK; normalize a bit
+      const values =
+        json?.embedding?.values ||
+        json?.embedding?.value ||
+        json?.embedding ||
+        json?.embeddings?.[0]?.values ||
+        json?.embeddings?.[0]?.value;
+
+      if (!Array.isArray(values)) {
+        throw new Error('Unexpected embedding response shape from Gemini embedContent');
+      }
+
+      return values;
+    } catch (e) {
+      throw normalizeError(e);
+    } finally {
+      stopTimeout();
     }
-
-    const json = await res.json();
-    // shapes vary by SDK; normalize a bit
-    const values =
-      json?.embedding?.values ||
-      json?.embedding?.value ||
-      json?.embedding ||
-      json?.embeddings?.[0]?.values ||
-      json?.embeddings?.[0]?.value;
-
-    if (!Array.isArray(values)) {
-      throw new Error('Unexpected embedding response shape from Gemini embedContent');
-    }
-
-    return values;
   });
 }
 
