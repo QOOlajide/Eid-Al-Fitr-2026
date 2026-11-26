@@ -111,3 +111,89 @@ describe('local Gemini timeout', () => {
     }
   });
 });
+
+describe('Gemini default timeout boundary', () => {
+  let originalFetch;
+  let originalEnv;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    originalEnv = { ...process.env };
+    process.env.GEMINI_API_KEY = TEST_KEY;
+    process.env.GEMINI_MAX_RETRIES = '0';
+    delete process.env.GEMINI_TIMEOUT_MS;
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    for (const key of ['GEMINI_API_KEY', 'GEMINI_MAX_RETRIES', 'GEMINI_TIMEOUT_MS']) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key];
+    }
+    jest.useRealTimers();
+  });
+
+  function waitForAbort(signal) {
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => {
+        reject(new DOMException('Request aborted', 'AbortError'));
+      }, { once: true });
+    });
+  }
+
+  test('aborts a pending fetch at 8000ms, not 7999ms', async () => {
+    let signal;
+    global.fetch = jest.fn((_url, options) => {
+      signal = options.signal;
+      return waitForAbort(signal);
+    });
+    const request = geminiGenerateText({ model: 'gemini-test', prompt: 'hi' });
+    const assertion = expect(request).rejects.toMatchObject({
+      isTimeout: true,
+      message: 'Gemini request timed out after 8000ms',
+    });
+    jest.advanceTimersByTime(7999);
+    expect(signal.aborted).toBe(false);
+    jest.advanceTimersByTime(1);
+    expect(signal.aborted).toBe(true);
+    await assertion;
+  });
+
+  test.each([
+    ['generation', () => geminiGenerateText({ model: 'gemini-test', prompt: 'hi' })],
+    ['embedding', () => geminiEmbedText({ model: 'embed-test', text: 'hi' })],
+  ])('keeps the timeout active after %s headers arrive', async (_label, generate) => {
+    let signal;
+    const json = jest.fn(() => waitForAbort(signal));
+    global.fetch = jest.fn(async (_url, options) => {
+      signal = options.signal;
+      return { ok: true, status: 200, json };
+    });
+    const request = generate();
+    const assertion = expect(request).rejects.toMatchObject({ isTimeout: true });
+    await jest.advanceTimersByTimeAsync(7999);
+    expect(json).toHaveBeenCalledTimes(1);
+    expect(signal.aborted).toBe(false);
+    jest.advanceTimersByTime(1);
+    expect(signal.aborted).toBe(true);
+    await assertion;
+  });
+
+  test('clears the timer after successful response consumption', async () => {
+    let signal;
+    global.fetch = jest.fn(async (_url, options) => {
+      signal = options.signal;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }),
+      };
+    });
+    await expect(geminiGenerateText({ model: 'gemini-test', prompt: 'hi' }))
+      .resolves.toMatchObject({ text: 'ok' });
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(8000);
+    expect(signal.aborted).toBe(false);
+  });
+});
