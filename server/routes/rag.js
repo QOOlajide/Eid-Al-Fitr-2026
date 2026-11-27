@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const ragService = require('../services/ragService');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
+const { createDeadline } = require('../services/deadline');
 const router = express.Router();
 
 // Ops probe: which RAG deps are configured (booleans only — no secrets).
@@ -70,7 +71,7 @@ router.post('/search', [
     const { query } = req.body;
     const userId = req.user?.id;
 
-    const result = await ragService.searchIslamicKnowledge(query, userId);
+    const result = await ragService.searchIslamicKnowledge(query, userId, createDeadline());
     
     res.json({
       success: true,
@@ -78,7 +79,7 @@ router.post('/search', [
     });
   } catch (error) {
     console.error('RAG search error:', error);
-    res.status(500).json({
+    res.status(error.isTimeout ? 504 : 500).json({
       message: 'Failed to search Islamic knowledge',
       // Safe operational detail (missing key / model / timeout) — no stack/secrets.
       error: error.message || 'unknown',
