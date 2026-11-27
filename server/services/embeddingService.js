@@ -1,6 +1,6 @@
 const { geminiEmbedText } = require('./geminiRestClient');
 
-async function embedText(text) {
+async function embedText(text, deadlineContext) {
   const input = String(text || '').trim();
   if (!input) return [];
 
@@ -10,6 +10,7 @@ async function embedText(text) {
 
   return await geminiEmbedText({
     model: embedModel,
+    deadlineContext,
     text: input,
     outputDimensionality: Number.isFinite(outputDimensionality) ? outputDimensionality : undefined,
   });
