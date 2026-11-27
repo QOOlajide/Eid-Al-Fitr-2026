@@ -1,3 +1,4 @@
+const { createDeadline, remainingBudget } = require('./deadline');
 const axios = require('axios');
 const { RAGSearch } = require('../models');
 const { embedText } = require('./embeddingService');
@@ -100,7 +101,7 @@ class RAGService {
     this.cacheTimeout = 30 * 60 * 1000; // 30 minutes
   }
 
-  async searchIslamicKnowledge(query, userId = null) {
+  async searchIslamicKnowledge(query, userId = null, deadlineContext = createDeadline()) {
     const startTime = Date.now();
     const queryId = makeQueryId(query);
     
@@ -135,7 +136,7 @@ class RAGService {
         }
       }
 
-      const { sources: searchResults, _queryId, _fallbackUsed } = await this.retrieve(query, queryId);
+      const { sources: searchResults, _queryId, _fallbackUsed } = await this.retrieve(query, queryId, deadlineContext);
       
       // Post-retrieval check: if vector scores are all very low, the query
       // likely has no relevant content in our index — skip the LLM call.
@@ -162,7 +163,7 @@ class RAGService {
       }
 
       const llmStart = Date.now();
-      const answer = await this.generateAnswer(query, searchResults);
+      const answer = await this.generateAnswer(query, searchResults, deadlineContext);
       const llmLatencyMs = Date.now() - llmStart;
       
       const confidence = this.calculateConfidence(searchResults, answer);
@@ -396,7 +397,7 @@ class RAGService {
     }
   }
 
-  async retrieve(query, queryId) {
+  async retrieve(query, queryId, deadlineContext) {
     const retriever = (process.env.RAG_RETRIEVER || 'vector').toLowerCase();
     const qdrant = vectorStore.getQdrantClient();
     const qid = queryId || makeQueryId(query);
@@ -406,11 +407,11 @@ class RAGService {
     if (retriever === 'vector' && qdrant) {
       try {
         const embedStart = Date.now();
-        const qEmbedding = await embedText(query);
+        const qEmbedding = await embedText(query, deadlineContext);
         const embedLatencyMs = Date.now() - embedStart;
 
         const qdrantStart = Date.now();
-        const hits = await vectorStore.search(qEmbedding, topK);
+        const hits = await vectorStore.search(qEmbedding, topK, undefined, deadlineContext);
         const qdrantLatencyMs = Date.now() - qdrantStart;
 
         const sources = (hits || []).map((h) => {
@@ -443,6 +444,7 @@ class RAGService {
 
         if (sources.length > 0) return { sources, _queryId: qid, _fallbackUsed: false };
       } catch (e) {
+        if (deadlineContext && e.isTimeout) throw e;
         console.log('Vector retrieval unavailable, falling back:', e.message);
         logRetrievalEvent({
           queryId: qid,
@@ -456,6 +458,7 @@ class RAGService {
       }
     }
 
+    if (deadlineContext) remainingBudget(deadlineContext, 'legacy.retrieve', 3000);
     const legacySources = await this.searchWebsites(query);
 
     logRetrievalEvent({
@@ -537,7 +540,7 @@ class RAGService {
     return mockData[domain] || [];
   }
 
-  async generateAnswer(query, sources) {
+  async generateAnswer(query, sources, deadlineContext) {
     try {
       const context = sources.map(source => 
         `Source: ${source.title}\nContent: ${source.content}`
@@ -565,9 +568,9 @@ Answer:`;
       const candidates = [GEMINI_CHAT_MODEL, ...getFallbackModels().filter(m => m !== GEMINI_CHAT_MODEL)];
 
       let lastErr = null;
-      for (const m of candidates) {
+      for (const m of (deadlineContext ? candidates.slice(0, 2) : candidates)) {
         try {
-          const { text, usage } = await geminiGenerateText({ model: m, prompt });
+          const { text, usage } = await geminiGenerateText({ model: m, prompt, deadlineContext, reserveMs: m === GEMINI_CHAT_MODEL && candidates.length > 1 ? 3000 : 200 });
           return { content: text, model: m, usage };
         } catch (e) {
           lastErr = e;
