@@ -1,4 +1,4 @@
-const { createDeadline, remainingBudget } = require('./deadline');
+const { createDeadline, BUDGET } = require('./deadline');
 const axios = require('axios');
 const { RAGSearch } = require('../models');
 const { embedText } = require('./embeddingService');
@@ -399,7 +399,7 @@ class RAGService {
 
   async retrieve(query, queryId, deadlineContext) {
     const retriever = (process.env.RAG_RETRIEVER || 'vector').toLowerCase();
-    const qdrant = vectorStore.getQdrantClient();
+    const qdrant = deadlineContext ? process.env.QDRANT_URL : vectorStore.getQdrantClient();
     const qid = queryId || makeQueryId(query);
     const topK = Number(process.env.RAG_TOP_K || 6);
     const embedModel = process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-2';
@@ -444,7 +444,7 @@ class RAGService {
 
         if (sources.length > 0) return { sources, _queryId: qid, _fallbackUsed: false };
       } catch (e) {
-        if (deadlineContext && e.isTimeout) throw e;
+        if (deadlineContext) throw e;
         console.log('Vector retrieval unavailable, falling back:', e.message);
         logRetrievalEvent({
           queryId: qid,
@@ -458,7 +458,7 @@ class RAGService {
       }
     }
 
-    if (deadlineContext) remainingBudget(deadlineContext, 'legacy.retrieve', 3000);
+    if (deadlineContext) return { sources: [], _queryId: qid, _fallbackUsed: false };
     const legacySources = await this.searchWebsites(query);
 
     logRetrievalEvent({
@@ -570,7 +570,7 @@ Answer:`;
       let lastErr = null;
       for (const m of (deadlineContext ? candidates.slice(0, 2) : candidates)) {
         try {
-          const { text, usage } = await geminiGenerateText({ model: m, prompt, deadlineContext, reserveMs: m === GEMINI_CHAT_MODEL && candidates.length > 1 ? 3000 : 200 });
+          const { text, usage } = await geminiGenerateText({ model: m, prompt, deadlineContext, reserveMs: m === GEMINI_CHAT_MODEL && candidates.length > 1 ? BUDGET.fallback + BUDGET.response : BUDGET.response, maxMs: m === GEMINI_CHAT_MODEL ? BUDGET.primary : Infinity });
           return { content: text, model: m, usage };
         } catch (e) {
           lastErr = e;
