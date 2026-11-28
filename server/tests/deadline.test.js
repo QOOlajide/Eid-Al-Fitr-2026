@@ -1,4 +1,4 @@
-const { createDeadline, remainingBudget } = require('../services/deadline');
+const { createDeadline, remainingBudget, BUDGET } = require('../services/deadline');
 const { geminiGenerateText, geminiEmbedText } = require('../services/geminiRestClient');
 
 describe('shared RAG deadline', () => {
@@ -20,31 +20,39 @@ describe('shared RAG deadline', () => {
   });
   test('same deadline across hops, decreasing budget', () => {
     const ctx = createDeadline();
-    expect(remainingBudget(ctx, 'embed', 3000)).toBe(5000);
+    expect(remainingBudget(ctx, 'embed', 3000)).toBe(7000);
     jest.advanceTimersByTime(1000);
-    expect(remainingBudget(ctx, 'qdrant', 3000)).toBe(4000);
-    expect(ctx.deadline).toBe(108000);
+    expect(remainingBudget(ctx, 'qdrant', 3000)).toBe(6000);
+    expect(ctx.deadline).toBe(110000);
     const logs = console.info.mock.calls.map(([line]) => JSON.parse(line));
-    expect(logs.map(x => x.deadline)).toEqual([108000, 108000]);
+    expect(logs.map(x => x.deadline)).toEqual([110000, 110000]);
     expect(logs.map(x => x.requestId)).toEqual([ctx.requestId, ctx.requestId]);
   });
   test('primary and fallback share budget after retrieval', async () => {
     const ctx = createDeadline();
-    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(1500);
     global.fetch = jest.fn((_url, { signal }) => new Promise((_resolve, reject) => {
       signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
     }));
-    const primary = expect(geminiGenerateText({ model: 'primary', prompt: 'hi', deadlineContext: ctx, reserveMs: 3000 })).rejects.toMatchObject({ isTimeout: true });
-    await jest.advanceTimersByTimeAsync(4000);
+    const primary = expect(geminiGenerateText({ model: 'primary', prompt: 'hi', deadlineContext: ctx, reserveMs: BUDGET.fallback + BUDGET.response, maxMs: BUDGET.primary })).rejects.toMatchObject({ isTimeout: true });
+    await jest.advanceTimersByTimeAsync(5000);
     await primary;
     const fallback = expect(geminiGenerateText({ model: 'fallback', prompt: 'hi', deadlineContext: ctx, reserveMs: 200 })).rejects.toMatchObject({ isTimeout: true });
-    await jest.advanceTimersByTimeAsync(2800);
+    await jest.advanceTimersByTimeAsync(3300);
     await fallback;
     expect(Date.now()).toBe(ctx.deadline - 200);
   });
+  test('retrieval caps preserve both generation budgets', () => {
+    const ctx = createDeadline();
+    expect(remainingBudget(ctx, 'embed', 9000, BUDGET.embedding)).toBe(1000);
+    jest.advanceTimersByTime(1000);
+    expect(remainingBudget(ctx, 'qdrant', 8500, BUDGET.retrieval)).toBe(500);
+    jest.advanceTimersByTime(500);
+    expect(remainingBudget(ctx, 'primary', 3500, BUDGET.primary)).toBe(5000);
+  });
   test('exhausted budget prevents network call', async () => {
     const ctx = createDeadline();
-    jest.advanceTimersByTime(8000);
+    jest.advanceTimersByTime(10000);
     global.fetch = jest.fn();
     await expect(geminiGenerateText({ model: 'primary', prompt: 'hi', deadlineContext: ctx })).rejects.toMatchObject({ isTimeout: true });
     expect(global.fetch).not.toHaveBeenCalled();
