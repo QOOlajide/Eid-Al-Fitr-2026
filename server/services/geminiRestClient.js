@@ -48,7 +48,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = geminiTimeoutMs()
 
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
-    return { response, stopTimeout, normalizeError };
+    return { response, stopTimeout, normalizeError, controller };
   } catch (e) {
     stopTimeout();
     throw normalizeError(e);
@@ -105,7 +105,8 @@ function thinkingLevel() {
   return 'LOW';
 }
 
-async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 0, maxMs = Infinity }) {
+async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 0, maxMs = Infinity, onChunk, signal }) {
+  if (onChunk) return geminiStreamText({ model, prompt, deadlineContext, reserveMs, maxMs, onChunk, signal });
   requireGeminiKey();
   const modelPath = modelToPath(model);
   const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
@@ -161,6 +162,86 @@ async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 
     throw normalizeError(e);
   } finally {
     stopTimeout();
+  }
+}
+
+
+async function geminiStreamText({ model, prompt, deadlineContext, reserveMs, maxMs, onChunk, signal }) {
+  requireGeminiKey();
+  const timeoutMs = deadlineContext
+    ? remainingBudget(deadlineContext, 'gemini.stream', reserveMs, maxMs)
+    : geminiTimeoutMs();
+  const controller = new AbortController();
+  let timer, timedOut = false, text = '', usage = null, finished = false;
+  const abort = () => controller.abort();
+  const arm = (ms) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { timedOut = true; abort(); }, ms);
+  };
+  if (signal?.aborted) throw new Error('Client disconnected');
+  signal?.addEventListener('abort', abort, { once: true });
+  arm(timeoutMs);
+  let reader;
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/${modelToPath(model)}:streamGenerateContent?alt=sse`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: String(prompt || '') }] }] }),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const e = new Error('Gemini stream failed (' + res.status + ')');
+      e.status = res.status;
+      throw e;
+    }
+    reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    const consume = (frame) => {
+      const data = frame.split(/\r?\n/).filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n');
+      if (!data) return;
+      const event = JSON.parse(data);
+      if (event.error) throw new Error('Gemini stream returned an error');
+      usage = event.usageMetadata || usage;
+      const candidate = event.candidates?.[0];
+      if (candidate?.finishReason) {
+        if (candidate.finishReason !== 'STOP') throw new Error('Incomplete Gemini answer: ' + candidate.finishReason);
+        finished = true;
+      }
+      for (const part of candidate?.content?.parts || []) {
+        if (part.thought || typeof part.text !== 'string' || !part.text) continue;
+        if (!text) arm(30000); // separate absolute completion budget after first text
+        text += part.text;
+        onChunk(part.text);
+      }
+    };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let match;
+      while ((match = /\r?\n\r?\n/.exec(buffer))) {
+        consume(buffer.slice(0, match.index));
+        buffer = buffer.slice(match.index + match[0].length);
+      }
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) consume(buffer);
+    if (!finished || !text) throw new Error('Gemini stream ended without a complete answer');
+    return { text, usage };
+  } catch (error) {
+    if (timedOut) {
+      const e = new Error('Gemini stream timed out');
+      e.isTimeout = true;
+      throw e;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
+    controller.abort();
+    if (reader) { await reader.cancel().catch(() => {}); reader.releaseLock(); }
   }
 }
 
