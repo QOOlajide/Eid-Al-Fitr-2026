@@ -1,3 +1,4 @@
+const { remainingBudget, BUDGET } = require('./deadline');
 const { QdrantClient } = require('@qdrant/js-client-rest');
 
 const collectionName = process.env.RAG_VECTOR_COLLECTION || 'islamic_chunks';
@@ -72,11 +73,35 @@ async function upsertPoints(points) {
   }
 }
 
-async function search(vector, limit = 6, filter) {
-  const qdrant = getQdrantClient();
-  if (!qdrant) return [];
+async function search(vector, limit = 6, filter, deadlineContext) {
+  if (!process.env.QDRANT_URL) return [];
   if (!Array.isArray(vector) || vector.length === 0) return [];
 
+  if (deadlineContext) {
+    const timeoutMs = remainingBudget(deadlineContext, 'qdrant.search', BUDGET.primary + BUDGET.fallback + BUDGET.response, BUDGET.retrieval);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const url = process.env.QDRANT_URL.replace(/\/+$/, '');
+      const response = await fetch(url + '/collections/' + encodeURIComponent(collectionName) + '/points/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(process.env.QDRANT_API_KEY ? { 'api-key': process.env.QDRANT_API_KEY } : {}) },
+        body: JSON.stringify({ vector, limit, with_payload: true, with_vector: false, filter }),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error('Qdrant search failed (' + response.status + ')');
+      const data = await response.json();
+      return data.result || [];
+    } catch (e) {
+      if (!controller.signal.aborted) throw e;
+      const error = new Error('Qdrant search timed out');
+      error.isTimeout = true;
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  const qdrant = getQdrantClient();
   const res = await qdrant.search(collectionName, {
     vector,
     limit,

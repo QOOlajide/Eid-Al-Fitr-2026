@@ -1,3 +1,5 @@
+const { remainingBudget, BUDGET } = require('./deadline');
+
 function requireGeminiKey() {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is required');
@@ -103,7 +105,7 @@ function thinkingLevel() {
   return 'LOW';
 }
 
-async function geminiGenerateText({ model, prompt }) {
+async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 0, maxMs = Infinity }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
   const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
@@ -129,7 +131,7 @@ async function geminiGenerateText({ model, prompt }) {
       'x-goog-api-key': process.env.GEMINI_API_KEY,
     },
     body: JSON.stringify(body),
-  });
+  }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.generate', reserveMs, maxMs) : undefined);
 
   try {
     if (!res.ok) {
@@ -162,7 +164,7 @@ async function geminiGenerateText({ model, prompt }) {
   }
 }
 
-async function geminiEmbedText({ model, text, outputDimensionality }) {
+async function geminiEmbedText({ model, text, outputDimensionality, deadlineContext }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
   const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:embedContent`;
@@ -178,7 +180,7 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
     body.outputDimensionality = outputDimensionality;
   }
 
-  return withRetries(async () => {
+  const attempt = async () => {
     const { response: res, stopTimeout, normalizeError } = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
@@ -186,7 +188,7 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
         'x-goog-api-key': process.env.GEMINI_API_KEY,
       },
       body: JSON.stringify(body),
-    });
+    }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.embed', BUDGET.retrieval + BUDGET.primary + BUDGET.fallback + BUDGET.response, BUDGET.embedding) : undefined);
 
     try {
       if (!res.ok) {
@@ -221,7 +223,8 @@ async function geminiEmbedText({ model, text, outputDimensionality }) {
     } finally {
       stopTimeout();
     }
-  });
+  };
+  return deadlineContext ? attempt() : withRetries(attempt);
 }
 
 module.exports = {
