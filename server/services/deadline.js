@@ -1,6 +1,6 @@
 const { randomUUID } = require('crypto');
 
-const BUDGET = Object.freeze({ embedding: 1000, retrieval: 500, primary: 5000, fallback: 3300, response: 200 });
+const BUDGET = Object.freeze({ embedding: 1000, retrieval: 500, primary: 6000, fallback: 4300, response: 200 });
 const TOTAL_MS = Object.values(BUDGET).reduce((sum, ms) => sum + ms, 0);
 
 function createDeadline() {
