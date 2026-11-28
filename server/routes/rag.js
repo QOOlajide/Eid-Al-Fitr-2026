@@ -14,7 +14,7 @@ router.get('/ready', (req, res) => {
     qdrantUrl: Boolean(process.env.QDRANT_URL),
     qdrantKey: Boolean(process.env.QDRANT_API_KEY),
     retriever: process.env.RAG_RETRIEVER || 'vector',
-    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash',
+    chatModel: process.env.GEMINI_CHAT_MODEL || 'gemini-3.5-flash-lite',
     embedModel: process.env.GEMINI_EMBED_MODEL || 'gemini-embedding-2',
     thinkingLevel: process.env.GEMINI_THINKING_LEVEL || 'LOW',
   });
@@ -71,6 +71,25 @@ router.post('/search', [
     const { query } = req.body;
     const userId = req.user?.id;
 
+    if (req.get('accept')?.includes('text/event-stream')) {
+      const controller = new AbortController();
+      const disconnect = () => controller.abort();
+      res.on('close', disconnect);
+      const send = (event, data) => {
+        if (!res.destroyed && !res.writableEnded) res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+      res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
+      try {
+        const result = await ragService.searchIslamicKnowledge(query, userId, createDeadline(), chunk => send('chunk', { text: chunk }), controller.signal);
+        send('done', { success: true, data: result });
+      } catch (error) {
+        if (!controller.signal.aborted) send('error', { message: error.message, isTimeout: !!error.isTimeout });
+      } finally {
+        res.removeListener('close', disconnect);
+        res.end();
+      }
+      return;
+    }
     const result = await ragService.searchIslamicKnowledge(query, userId, createDeadline());
     
     res.json({
