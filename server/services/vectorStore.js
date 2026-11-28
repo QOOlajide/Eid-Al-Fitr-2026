@@ -1,4 +1,4 @@
-const { remainingBudget } = require('./deadline');
+const { remainingBudget, BUDGET } = require('./deadline');
 const { QdrantClient } = require('@qdrant/js-client-rest');
 
 const collectionName = process.env.RAG_VECTOR_COLLECTION || 'islamic_chunks';
@@ -74,12 +74,11 @@ async function upsertPoints(points) {
 }
 
 async function search(vector, limit = 6, filter, deadlineContext) {
-  const qdrant = getQdrantClient();
-  if (!qdrant) return [];
+  if (!process.env.QDRANT_URL) return [];
   if (!Array.isArray(vector) || vector.length === 0) return [];
 
   if (deadlineContext) {
-    const timeoutMs = remainingBudget(deadlineContext, 'qdrant.search', 3000);
+    const timeoutMs = remainingBudget(deadlineContext, 'qdrant.search', BUDGET.primary + BUDGET.fallback + BUDGET.response, BUDGET.retrieval);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -102,6 +101,7 @@ async function search(vector, limit = 6, filter, deadlineContext) {
       clearTimeout(timer);
     }
   }
+  const qdrant = getQdrantClient();
   const res = await qdrant.search(collectionName, {
     vector,
     limit,
