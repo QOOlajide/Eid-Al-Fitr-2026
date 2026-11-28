@@ -1,4 +1,4 @@
-const { remainingBudget } = require('./deadline');
+const { remainingBudget, BUDGET } = require('./deadline');
 
 function requireGeminiKey() {
   if (!process.env.GEMINI_API_KEY) {
@@ -105,7 +105,7 @@ function thinkingLevel() {
   return 'LOW';
 }
 
-async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 0 }) {
+async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 0, maxMs = Infinity }) {
   requireGeminiKey();
   const modelPath = modelToPath(model);
   const url = `https://generativelanguage.googleapis.com/v1beta/${modelPath}:generateContent`;
@@ -131,7 +131,7 @@ async function geminiGenerateText({ model, prompt, deadlineContext, reserveMs = 
       'x-goog-api-key': process.env.GEMINI_API_KEY,
     },
     body: JSON.stringify(body),
-  }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.generate', reserveMs) : undefined);
+  }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.generate', reserveMs, maxMs) : undefined);
 
   try {
     if (!res.ok) {
@@ -188,7 +188,7 @@ async function geminiEmbedText({ model, text, outputDimensionality, deadlineCont
         'x-goog-api-key': process.env.GEMINI_API_KEY,
       },
       body: JSON.stringify(body),
-    }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.embed', 3000) : undefined);
+    }, deadlineContext ? remainingBudget(deadlineContext, 'gemini.embed', BUDGET.retrieval + BUDGET.primary + BUDGET.fallback + BUDGET.response, BUDGET.embedding) : undefined);
 
     try {
       if (!res.ok) {
