@@ -11,8 +11,8 @@ const { classifyQuery, isLowRelevance } = require('./queryGuardrail');
 
 // Current Gemini API defaults (Nov 2026). gemini-2.0-flash is shut down.
 // https://aistudio.google.com/docs/models
-const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-3.8-flash';
-const DEFAULT_FALLBACK_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+const GEMINI_CHAT_MODEL = process.env.GEMINI_CHAT_MODEL || 'gemini-3.5-flash-lite';
+const DEFAULT_FALLBACK_MODELS = ['gemini-3.1-flash-lite'];
 
 function getFallbackModels() {
   const envList = (process.env.GEMINI_FALLBACK_MODELS || '')
@@ -101,7 +101,7 @@ class RAGService {
     this.cacheTimeout = 30 * 60 * 1000; // 30 minutes
   }
 
-  async searchIslamicKnowledge(query, userId = null, deadlineContext = createDeadline()) {
+  async searchIslamicKnowledge(query, userId = null, deadlineContext = createDeadline(), onChunk, signal) {
     const startTime = Date.now();
     const queryId = makeQueryId(query);
     
@@ -163,7 +163,7 @@ class RAGService {
       }
 
       const llmStart = Date.now();
-      const answer = await this.generateAnswer(query, searchResults, deadlineContext);
+      const answer = await this.generateAnswer(query, searchResults, deadlineContext, onChunk, signal);
       const llmLatencyMs = Date.now() - llmStart;
       
       const confidence = this.calculateConfidence(searchResults, answer);
@@ -540,7 +540,7 @@ class RAGService {
     return mockData[domain] || [];
   }
 
-  async generateAnswer(query, sources, deadlineContext) {
+  async generateAnswer(query, sources, deadlineContext, onChunk, signal) {
     try {
       const context = sources.map(source => 
         `Source: ${source.title}\nContent: ${source.content}`
@@ -568,9 +568,10 @@ Answer:`;
       const candidates = [GEMINI_CHAT_MODEL, ...getFallbackModels().filter(m => m !== GEMINI_CHAT_MODEL)];
 
       let lastErr = null;
+      let emitted = false;
       for (const m of (deadlineContext ? candidates.slice(0, 2) : candidates)) {
         try {
-          const { text, usage } = await geminiGenerateText({ model: m, prompt, deadlineContext, reserveMs: m === GEMINI_CHAT_MODEL && candidates.length > 1 ? BUDGET.fallback + BUDGET.response : BUDGET.response, maxMs: m === GEMINI_CHAT_MODEL ? BUDGET.primary : Infinity });
+          const { text, usage } = await geminiGenerateText({ model: m, prompt, deadlineContext, signal, onChunk: onChunk ? chunk => { emitted = true; onChunk(chunk); } : undefined, reserveMs: m === GEMINI_CHAT_MODEL && candidates.length > 1 ? BUDGET.fallback + BUDGET.response : BUDGET.response, maxMs: m === GEMINI_CHAT_MODEL ? BUDGET.primary : Infinity });
           return { content: text, model: m, usage };
         } catch (e) {
           lastErr = e;
@@ -584,7 +585,7 @@ Answer:`;
             status === 504 ||
             e?.isTimeout === true;
 
-          if (!isRetryableForFallback) break;
+          if (emitted || signal?.aborted || !isRetryableForFallback) break;
         }
       }
 
